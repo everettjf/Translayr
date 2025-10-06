@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5A86A34F2E9415F300CA8E22 /* Ollama in Frameworks */ = {isa = PBXBuildFile; productRef = 5A86A34E2E9415F300CA8E22 /* Ollama */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5ACBDEF62E8A12F400DD7984 /* Spello.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spello.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A86A34F2E9415F300CA8E22 /* Ollama in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Spello;
 			packageProductDependencies = (
+				5A86A34E2E9415F300CA8E22 /* Ollama */,
 			);
 			productName = Spello;
 			productReference = 5ACBDEF62E8A12F400DD7984 /* Spello.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 5ACBDEED2E8A12F400DD7984;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5A86A34D2E9415F300CA8E22 /* XCRemoteSwiftPackageReference "ollama-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5ACBDEF72E8A12F400DD7984 /* Products */;
 			projectDirPath = "";
@@ -331,6 +340,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5A86A34D2E9415F300CA8E22 /* XCRemoteSwiftPackageReference "ollama-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/mattt/ollama-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5A86A34E2E9415F300CA8E22 /* Ollama */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A86A34D2E9415F300CA8E22 /* XCRemoteSwiftPackageReference "ollama-swift" */;
+			productName = Ollama;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5ACBDEEE2E8A12F400DD7984 /* Project object */;
 }
