@@ -6,9 +6,11 @@
 //
 
 import Foundation
+import Ollama
 
 protocol LocalModelClientProtocol {
     func analyzeText(_ text: String, language: String?) async throws -> [LocalModelSuggestion]
+    func translateChineseToEnglish(_ text: String) async throws -> String
 }
 
 struct LocalModelSuggestion {
@@ -19,91 +21,161 @@ struct LocalModelSuggestion {
 }
 
 class LocalModelClient: LocalModelClientProtocol {
-    private let baseURL: URL
-    private let session: URLSession
+    private let ollamaClient: Ollama.Client
+    private let modelName: String
 
-    init(baseURL: String = "http://127.0.0.1:8080") {
-        self.baseURL = URL(string: baseURL)!
-        self.session = URLSession.shared
+    init(
+        host: String = OllamaConfig.host,
+        port: Int = OllamaConfig.port,
+        modelName: String = OllamaConfig.defaultModel
+    ) {
+        let hostURL = URL(string: "\(host):\(port)")!
+        self.ollamaClient = Ollama.Client(host: hostURL)
+        self.modelName = modelName
     }
 
     func analyzeText(_ text: String, language: String? = nil) async throws -> [LocalModelSuggestion] {
-        // For now, return mock data since we don't have a real local model server
-        // In production, this would make an HTTP request to the local model endpoint
-        return await getMockSuggestions(for: text)
+        print("LocalModelClient: analyzeText called")
+        print("Text contains Chinese: \(containsChinese(text))")
+
+        // 检测文本是否包含中文
+        if containsChinese(text) {
+            return try await analyzeChineseText(text)
+        }
+
+        print("No Chinese detected, returning empty suggestions")
+        // 对于非中文文本，使用基本的拼写检查
+        return []
     }
 
-    private func getMockSuggestions(for text: String) async -> [LocalModelSuggestion] {
-        // Simulate network delay
-        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+    private func containsChinese(_ text: String) -> Bool {
+        let chineseRange = text.range(of: "\\p{Han}", options: .regularExpression)
+        return chineseRange != nil
+    }
 
-        let nsText = text as NSString
+    private func analyzeChineseText(_ text: String) async throws -> [LocalModelSuggestion] {
         var suggestions: [LocalModelSuggestion] = []
+        let nsText = text as NSString
 
-        // Mock: Advanced grammar and style suggestions
-        let advancedSuggestions: [(String, [String], Float)] = [
-            ("alot", ["a lot"], 0.95),
-            ("irregardless", ["regardless"], 0.90),
-            ("could of", ["could have"], 0.98),
-            ("should of", ["should have"], 0.98),
-            ("would of", ["would have"], 0.98),
-            ("there performance", ["their performance"], 0.85),
-            ("its been", ["it's been"], 0.80),
-            ("your welcome", ["you're welcome"], 0.92),
-            ("loose weight", ["lose weight"], 0.88),
-            ("effect change", ["affect change"], 0.75)
-        ]
+        print("=== Analyzing Chinese text ===")
+        print("Text: \(text)")
 
-        for (phrase, corrections, confidence) in advancedSuggestions {
-            let searchRange = NSRange(location: 0, length: nsText.length)
-            let range = nsText.range(of: phrase, options: .caseInsensitive, range: searchRange)
+        // 分词：将文本分成词或短语
+        let words = segmentChineseText(text)
+        print("Segmented into \(words.count) words")
 
-            if range.location != NSNotFound {
-                let suggestion = LocalModelSuggestion(
-                    word: nsText.substring(with: range),
-                    range: range,
-                    candidates: corrections,
-                    confidence: confidence
-                )
-                suggestions.append(suggestion)
+        for word in words {
+            // 跳过纯英文或数字
+            if !containsChinese(word.text) {
+                print("Skipping non-Chinese word: '\(word.text)'")
+                continue
+            }
+
+            print("Translating: '\(word.text)'")
+
+            // 翻译中文词到英文
+            do {
+                let translation = try await translateChineseToEnglish(word.text)
+                print("Translation result: '\(word.text)' -> '\(translation)'")
+
+                if !translation.isEmpty {
+                    let suggestion = LocalModelSuggestion(
+                        word: word.text,
+                        range: word.range,
+                        candidates: [translation],
+                        confidence: 0.9
+                    )
+                    suggestions.append(suggestion)
+                }
+            } catch {
+                // 如果翻译失败，跳过这个词
+                print("Translation failed for '\(word.text)': \(error)")
             }
         }
 
+        print("Generated \(suggestions.count) translation suggestions")
         return suggestions
     }
 
-    // Future implementation for real HTTP requests
-    private func makeHTTPRequest(text: String, language: String?) async throws -> [LocalModelSuggestion] {
-        let endpoint = baseURL.appendingPathComponent("analyze")
+    func translateChineseToEnglish(_ text: String) async throws -> String {
+        let prompt = """
+        Translate the following Chinese text to English. Only provide the translation, no explanation or additional text.
 
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        Chinese: \(text)
+        English:
+        """
 
-        let requestBody = [
-            "text": text,
-            "language": language ?? "auto",
-            "task": "spell_check"
-        ]
+        do {
+            guard let modelID = Model.ID(rawValue: modelName) else {
+                throw LocalModelError.invalidModelName
+            }
 
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            // 使用 Ollama 生成翻译
+            var fullResponse = ""
 
-        let (data, response) = try await session.data(for: request)
+            if OllamaConfig.streamingEnabled {
+                // 使用流式 API
+                let stream = ollamaClient.generateStream(
+                    model: modelID,
+                    prompt: prompt,
+                    options: [
+                        "temperature": .double(OllamaConfig.temperature),
+                        "top_p": .double(OllamaConfig.topP),
+                        "top_k": .int(OllamaConfig.topK)
+                    ]
+                )
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw LocalModelError.serverError
+                for try await chunk in stream {
+                    fullResponse += chunk.response
+                }
+            } else {
+                // 使用非流式 API
+                let response = try await ollamaClient.generate(
+                    model: modelID,
+                    prompt: prompt,
+                    options: [
+                        "temperature": .double(OllamaConfig.temperature),
+                        "top_p": .double(OllamaConfig.topP),
+                        "top_k": .int(OllamaConfig.topK)
+                    ]
+                )
+                fullResponse = response.response
+            }
+
+            // 清理响应
+            let cleaned = fullResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+            return cleaned
+
+        } catch {
+            print("Ollama error: \(error)")
+            throw LocalModelError.networkError
+        }
+    }
+
+    private func segmentChineseText(_ text: String) -> [(text: String, range: NSRange)] {
+        let nsText = text as NSString
+        var segments: [(text: String, range: NSRange)] = []
+
+        // 改进的中文分词：提取连续的中文字符组成的词组
+        // 使用更智能的分词策略：2-4个字的中文词组
+        let pattern = "[\\p{Han}]{2,}"  // 至少2个汉字组成一个词
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            print("Failed to create regex for Chinese segmentation")
+            return segments
         }
 
-        let result = try JSONDecoder().decode(LocalModelResponse.self, from: data)
-        return result.suggestions.map { suggestion in
-            LocalModelSuggestion(
-                word: suggestion.word,
-                range: NSRange(location: suggestion.start, length: suggestion.length),
-                candidates: suggestion.candidates,
-                confidence: suggestion.confidence
-            )
+        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
+
+        print("Found \(matches.count) Chinese segments in text")
+
+        for match in matches {
+            let matchText = nsText.substring(with: match.range)
+            print("Chinese segment: '\(matchText)' at range \(match.range.location)-\(match.range.location + match.range.length)")
+            segments.append((text: matchText, range: match.range))
         }
+
+        return segments
     }
 }
 
@@ -111,19 +183,8 @@ enum LocalModelError: Error {
     case serverError
     case invalidResponse
     case networkError
-}
-
-// Response models for HTTP API
-struct LocalModelResponse: Codable {
-    let suggestions: [APISpellSuggestion]
-}
-
-struct APISpellSuggestion: Codable {
-    let word: String
-    let start: Int
-    let length: Int
-    let candidates: [String]
-    let confidence: Float
+    case modelNotFound
+    case invalidModelName
 }
 
 // Extension to convert LocalModelSuggestion to Suggestion
@@ -134,7 +195,7 @@ extension LocalModelSuggestion {
             range: range,
             context: context,
             candidates: candidates,
-            source: "LocalModel"
+            source: "AI Translation"
         )
     }
 }

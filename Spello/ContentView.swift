@@ -10,9 +10,9 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var spellService = SpellService()
     @State private var text = """
-    This is a sample text with some speling errors. You can type or paste your text here to check for mistakes. The app will highlight misspelled words and provide suggestions.
+    这是一个示例文本。你可以在这里输入或粘贴中文文本，应用会自动为你提供英文翻译建议。
 
-    Try typing some words with intentional errors like 'recieve', 'seperate', or 'definately' to see the spell checker in action.
+    试试输入一些中文词汇，比如"人工智能"、"机器学习"、"深度学习"等，看看翻译效果。
     """
     @State private var isAutomaticSpellingCorrectionEnabled = true
     @State private var selectedLanguage: String? = nil
@@ -56,10 +56,6 @@ struct ContentView: View {
                 HStack(spacing: 16) {
                     // Auto-correction toggle
                     Toggle("Auto-correct", isOn: $isAutomaticSpellingCorrectionEnabled)
-                        .toggleStyle(SwitchToggleStyle())
-
-                    // Local model toggle
-                    Toggle("AI Suggestions", isOn: $spellService.isLocalModelEnabled)
                         .toggleStyle(SwitchToggleStyle())
 
                     // Language selector
@@ -133,14 +129,29 @@ struct ContentView: View {
 
         isCheckingSpelling = true
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            let foundSuggestions = spellService.checkFullText(text, language: selectedLanguage)
+        Task {
+            // 先获取系统拼写检查结果
+            let systemSuggestions = await Task.detached {
+                self.spellService.scanSystem(text: self.text, language: self.selectedLanguage)
+            }.value
 
-            DispatchQueue.main.async {
-                self.suggestions = foundSuggestions
+            // 如果启用了 AI 翻译，获取翻译建议
+            var modelSuggestions: [Suggestion] = []
+            if spellService.isLocalModelEnabled {
+                modelSuggestions = await spellService.analyzeWithLocalModelAsync(
+                    text: text,
+                    language: selectedLanguage
+                )
+            }
+
+            // 合并建议
+            let mergedSuggestions = spellService.merge(systemSuggestions, modelSuggestions)
+
+            await MainActor.run {
+                self.suggestions = mergedSuggestions
                 self.isCheckingSpelling = false
 
-                if !foundSuggestions.isEmpty {
+                if !mergedSuggestions.isEmpty {
                     self.showingSuggestions = true
                 }
             }

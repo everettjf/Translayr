@@ -10,7 +10,7 @@ import AppKit
 import Combine
 
 class SpellService: ObservableObject, SpellAnalyzing {
-    @Published var isLocalModelEnabled: Bool = false
+    @Published var isLocalModelEnabled: Bool = true  // 默认启用 AI 翻译
     private let spellChecker = NSSpellChecker.shared
     private var ignoredWords: Set<String> = []
 
@@ -71,12 +71,12 @@ class SpellService: ObservableObject, SpellAnalyzing {
     func analyzeWithLocalModel(text: String, language: String? = nil) -> [Suggestion] {
         guard isLocalModelEnabled else { return [] }
 
-        // For synchronous operation, use mock suggestions
-        // In production, you'd implement this as an async method
-        return getMockLocalModelSuggestions(for: text)
+        // For synchronous operation, return empty array
+        // Real analysis happens in async version
+        return []
     }
 
-    // Async version for future use with real local models
+    // Async version using Ollama for translation
     func analyzeWithLocalModelAsync(text: String, language: String? = nil) async -> [Suggestion] {
         guard isLocalModelEnabled else { return [] }
 
@@ -93,45 +93,10 @@ class SpellService: ObservableObject, SpellAnalyzing {
                 return modelSuggestion.toSuggestion(context: context)
             }
         } catch {
-            // Fallback to mock suggestions if local model fails
-            return getMockLocalModelSuggestions(for: text)
+            print("Local model error: \(error)")
+            // 失败时返回空数组，不影响系统拼写检查
+            return []
         }
-    }
-
-    private func getMockLocalModelSuggestions(for text: String) -> [Suggestion] {
-        let nsText = text as NSString
-        var suggestions: [Suggestion] = []
-
-        // Mock: Find common typos and suggest corrections
-        let mockReplacements = [
-            "teh": ["the"],
-            "recieve": ["receive"],
-            "seperate": ["separate"],
-            "occured": ["occurred"],
-            "definately": ["definitely"]
-        ]
-
-        for (typo, corrections) in mockReplacements {
-            let searchRange = NSRange(location: 0, length: nsText.length)
-            let range = nsText.range(of: typo, options: .caseInsensitive, range: searchRange)
-
-            if range.location != NSNotFound {
-                let contextRange = getContextRange(for: range, in: nsText)
-                let context = nsText.substring(with: contextRange)
-
-                let suggestion = Suggestion(
-                    word: nsText.substring(with: range),
-                    range: range,
-                    context: context,
-                    candidates: corrections,
-                    source: "LocalModel"
-                )
-
-                suggestions.append(suggestion)
-            }
-        }
-
-        return suggestions
     }
 
     func merge(_ systemSuggestions: [Suggestion], _ modelSuggestions: [Suggestion]) -> [Suggestion] {
