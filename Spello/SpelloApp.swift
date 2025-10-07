@@ -12,7 +12,7 @@ struct SpelloApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup(content: {
+        WindowGroup(makeContent: {
             ContentView()
         })
         .commands {
@@ -27,5 +27,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 注册系统服务
         _ = SystemServiceProvider.shared
         print("System services registered")
+    }
+
+    // 当最后一个窗口关闭时，终止应用
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
     }
 }

@@ -2,7 +2,7 @@
 //  SpellCheckMonitor.swift
 //  Spello
 //
-//  实时拼写检查监控器
+//  Minimal spell check monitor using NSSpellChecker.substitutionPanel
 //
 
 import SwiftUI
@@ -12,20 +12,18 @@ import Combine
 class SpellCheckMonitor: ObservableObject {
     static let shared = SpellCheckMonitor()
 
-    @Published var currentSuggestion: Suggestion?
-    @Published var isShowingSuggestion = false
+    @Published var detectedItems: [DetectedTextItem] = []
 
     private let accessibilityMonitor = AccessibilityMonitor.shared
     private let spellService = SpellService()
     private var cancellables = Set<AnyCancellable>()
-    private var suggestionWindow: FloatingSuggestionWindow?
 
     private init() {
-        // 监听文本变化
+        // Monitor text changes - only detect Chinese text
         accessibilityMonitor.$currentText
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] text in
-                self?.checkText(text)
+                self?.detectChineseText(text)
             }
             .store(in: &cancellables)
     }
@@ -40,112 +38,87 @@ class SpellCheckMonitor: ObservableObject {
     func stopMonitoring() {
         print("⏹ Stopping spell check monitoring")
         accessibilityMonitor.stopMonitoring()
-        hideSuggestions()
     }
 
-    func applySuggestion(_ candidate: String) {
-        guard let suggestion = currentSuggestion else { return }
+    /// Translate a specific detected item when clicked
+    func translateItem(_ item: DetectedTextItem) async -> [String] {
+        print("🔄 Translating: \(item.text)")
 
-        // 替换文本
-        accessibilityMonitor.replaceText(in: suggestion.range, with: candidate)
+        // Get AI translation suggestions
+        let aiSuggestions = await spellService.analyzeWithLocalModelAsync(text: item.text, language: nil)
 
-        // 隐藏建议
-        hideSuggestions()
-    }
+        // Extract translation candidates
+        let translations = aiSuggestions.flatMap { $0.candidates }
+        print("✅ Got \(translations.count) translations")
 
-    func ignoreSuggestion() {
-        guard let suggestion = currentSuggestion else { return }
-        spellService.ignore(word: suggestion.word)
-        hideSuggestions()
-    }
-
-    func hideSuggestions() {
-        isShowingSuggestion = false
-        currentSuggestion = nil
-        suggestionWindow?.orderOut(nil)
+        return translations
     }
 
     // MARK: - Private Methods
 
-    private func checkText(_ text: String) {
+    /// Detect Chinese text (sentences first, then words)
+    private func detectChineseText(_ text: String) {
         guard !text.isEmpty else {
-            hideSuggestions()
+            detectedItems = []
             return
         }
 
-        print("🔍 Checking text: \(text)")
+        print("🔍 Detecting Chinese text: \(text)")
 
-        Task {
-            // 获取系统拼写检查建议
-            let systemSuggestions = await Task.detached {
-                self.spellService.scanSystem(text: text, language: nil)
-            }.value
+        var items: [DetectedTextItem] = []
 
-            // 获取 AI 翻译建议
-            let aiSuggestions = await spellService.analyzeWithLocalModelAsync(text: text, language: nil)
+        // Priority 1: Detect sentences (Chinese text ending with punctuation)
+        let sentencePattern = "[\\p{Han}][^。！？\\n]*[。！？]"
+        if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
+            let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
 
-            // 合并建议
-            let allSuggestions = spellService.merge(systemSuggestions, aiSuggestions)
-
-            // 显示第一个建议
-            if let firstSuggestion = allSuggestions.first {
-                showSuggestion(firstSuggestion)
-            } else {
-                hideSuggestions()
+            for match in matches {
+                if let range = Range(match.range, in: text) {
+                    let sentence = String(text[range])
+                    items.append(DetectedTextItem(
+                        text: sentence,
+                        range: match.range,
+                        type: .sentence
+                    ))
+                }
             }
         }
+
+        // Priority 2: Detect individual Chinese words (2+ characters)
+        let coveredRanges = items.map { $0.range }
+        let wordPattern = "[\\p{Han}]{2,}"
+        if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
+            let matches = wordRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
+
+            for match in matches {
+                let covered = coveredRanges.contains { NSIntersectionRange($0, match.range).length > 0 }
+                if !covered, let range = Range(match.range, in: text) {
+                    let word = String(text[range])
+                    items.append(DetectedTextItem(
+                        text: word,
+                        range: match.range,
+                        type: .word
+                    ))
+                }
+            }
+        }
+
+        detectedItems = items
+        print("📋 Detected \(items.count) items")
     }
+}
 
-    private func showSuggestion(_ suggestion: Suggestion) {
-        currentSuggestion = suggestion
-        isShowingSuggestion = true
+// MARK: - Supporting Models
 
-        // 创建或更新浮动窗口
-        if suggestionWindow == nil {
-            suggestionWindow = FloatingSuggestionWindow()
-            suggestionWindow?.contentView = NSHostingView(
-                rootView: SuggestionWindowContent()
-                    .environmentObject(self)
-            )
-        }
+/// Model for detected text items that need translation
+struct DetectedTextItem: Identifiable {
+    let id = UUID()
+    let text: String
+    let range: NSRange
+    let type: DetectionType
 
-        // 定位窗口在鼠标附近
-        positionWindow()
-
-        // 显示窗口
-        suggestionWindow?.makeKeyAndOrderFront(nil)
-
-        print("💡 Showing suggestion: \(suggestion.word) -> \(suggestion.candidates.joined(separator: ", "))")
-    }
-
-    private func positionWindow() {
-        guard let window = suggestionWindow else { return }
-
-        // 获取鼠标位置
-        let mouseLocation = NSEvent.mouseLocation
-
-        // 计算窗口位置（在鼠标右下方）
-        let windowSize = window.frame.size
-        var windowOrigin = CGPoint(
-            x: mouseLocation.x + 10,
-            y: mouseLocation.y - windowSize.height - 10
-        )
-
-        // 确保窗口在屏幕内
-        if let screen = NSScreen.main {
-            let screenFrame = screen.visibleFrame
-
-            // 检查右边界
-            if windowOrigin.x + windowSize.width > screenFrame.maxX {
-                windowOrigin.x = mouseLocation.x - windowSize.width - 10
-            }
-
-            // 检查上边界
-            if windowOrigin.y < screenFrame.minY {
-                windowOrigin.y = mouseLocation.y + 10
-            }
-        }
-
-        window.setFrameOrigin(windowOrigin)
+    enum DetectionType {
+        case sentence
+        case word
     }
 }

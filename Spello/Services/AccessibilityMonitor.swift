@@ -24,16 +24,16 @@ class AccessibilityMonitor: ObservableObject {
 
     // MARK: - Accessibility Permission
 
-    /// 检查是否有辅助功能权限
+    /// 检查是否有辅助功能权限（不弹出提示）
     func checkAccessibilityPermission() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        let accessEnabled = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        return accessEnabled
+        return AXIsProcessTrusted()
     }
 
-    /// 请求辅助功能权限
+    /// 请求辅助功能权限（首次会弹出系统提示）
     func requestAccessibilityPermission() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        let options: NSDictionary = [
+            kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true
+        ]
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
 

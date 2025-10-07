@@ -15,15 +15,17 @@ struct SpellCheckedTextView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
-        let textView = NSTextView()
+        let textView = ChineseDetectingTextView()
 
         // Configure text view
-        textView.isRichText = false
+        textView.isRichText = true  // Enable rich text for underline attributes
         textView.isEditable = true
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.font = NSFont.systemFont(ofSize: 14)
         textView.backgroundColor = NSColor.textBackgroundColor
+        textView.usesFontPanel = false
+        textView.usesRuler = false
 
         // Fix layout issues
         textView.isVerticallyResizable = true
@@ -55,11 +57,13 @@ struct SpellCheckedTextView: NSViewRepresentable {
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        guard let textView = scrollView.documentView as? NSTextView else { return }
+        guard let textView = scrollView.documentView as? ChineseDetectingTextView else { return }
 
         // Update text if it changed externally
         if textView.string != text {
             textView.string = text
+            // Trigger underline detection after setting text
+            textView.detectAndUnderlineChineseText()
         }
 
         // Update spelling correction setting
@@ -211,5 +215,135 @@ extension NSTextView {
 
         range = NSRange(location: start, length: end - start)
         return range
+    }
+}
+
+// MARK: - Custom NSTextView with Chinese Detection
+
+class ChineseDetectingTextView: NSTextView {
+    private var chineseRanges: [NSRange] = []
+    private var clickedRange: NSRange?
+
+    override func didChangeText() {
+        super.didChangeText()
+        detectAndUnderlineChineseText()
+    }
+
+    func detectAndUnderlineChineseText() {
+        guard let textStorage = textStorage else { return }
+
+        chineseRanges = []
+        let text = string as NSString
+        let fullRange = NSRange(location: 0, length: text.length)
+
+        // Remove all existing underlines first
+        textStorage.removeAttribute(.underlineStyle, range: fullRange)
+        textStorage.removeAttribute(.underlineColor, range: fullRange)
+
+        // Priority 1: Detect sentences
+        let sentencePattern = "[\\p{Han}][^。！？\\n]*[。！？]"
+        if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
+            let matches = sentenceRegex.matches(in: string, options: [], range: fullRange)
+            chineseRanges.append(contentsOf: matches.map { $0.range })
+        }
+
+        // Priority 2: Detect individual words not in sentences
+        let wordPattern = "[\\p{Han}]{2,}"
+        if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
+            let matches = wordRegex.matches(in: string, options: [], range: fullRange)
+
+            for match in matches {
+                let covered = chineseRanges.contains { NSIntersectionRange($0, match.range).length > 0 }
+                if !covered {
+                    chineseRanges.append(match.range)
+                }
+            }
+        }
+
+        // Apply red underlines to detected ranges
+        for range in chineseRanges {
+            textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+            textStorage.addAttribute(.underlineColor, value: NSColor.red, range: range)
+        }
+    }
+
+    // Handle clicks on underlined text
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let index = characterIndex(for: point)
+
+        // Check if clicked on Chinese text
+        clickedRange = nil
+        for range in chineseRanges {
+            if NSLocationInRange(index, range) {
+                clickedRange = range
+                showTranslationPopup(for: range, at: point)
+                return
+            }
+        }
+
+        super.mouseDown(with: event)
+    }
+
+    private func showTranslationPopup(for range: NSRange, at point: NSPoint) {
+        let text = (string as NSString).substring(with: range)
+        print("🖱️ Clicked Chinese text: \(text)")
+
+        clickedRange = range
+
+        // Translate and show in substitution panel
+        Task { @MainActor in
+            let item = DetectedTextItem(text: text, range: range, type: .sentence)
+            let translations = await SpellCheckMonitor.shared.translateItem(item)
+
+            if !translations.isEmpty {
+                // Show substitution panel with translations
+                showSubstitutionPanel(original: text, suggestions: translations)
+            } else {
+                print("⚠️ No translations found")
+            }
+        }
+    }
+
+    private func showSubstitutionPanel(original: String, suggestions: [String]) {
+        // Use NSSpellChecker's substitution panel
+        let panel = NSSpellChecker.shared.substitutionsPanel
+        panel.makeKeyAndOrderFront(self)
+
+        // Or show a simple context menu with translations
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Translate '\(original)':", action: nil, keyEquivalent: "")
+        menu.addItem(NSMenuItem.separator())
+
+        for (index, translation) in suggestions.prefix(5).enumerated() {
+            let item = menu.addItem(withTitle: translation, action: #selector(replaceWithTranslation(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = index
+            item.representedObject = translation
+        }
+
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(withTitle: "Ignore", action: #selector(ignoreText), keyEquivalent: "")
+
+        NSMenu.popUpContextMenu(menu, with: NSApp.currentEvent!, for: self)
+    }
+
+    @objc private func replaceWithTranslation(_ sender: NSMenuItem) {
+        guard let range = clickedRange,
+              let translation = sender.representedObject as? String else { return }
+
+        print("✏️ Replacing with: \(translation)")
+        replaceCharacters(in: range, with: translation)
+
+        // Remove underline
+        textStorage?.removeAttribute(.underlineStyle, range: NSRange(location: range.location, length: translation.count))
+        textStorage?.removeAttribute(.underlineColor, range: NSRange(location: range.location, length: translation.count))
+    }
+
+    @objc private func ignoreText() {
+        guard let range = clickedRange else { return }
+        // Remove underline for this range
+        textStorage?.removeAttribute(.underlineStyle, range: range)
+        textStorage?.removeAttribute(.underlineColor, range: range)
     }
 }

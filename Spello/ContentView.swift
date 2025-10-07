@@ -6,19 +6,27 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct ContentView: View {
     @StateObject private var spellService = SpellService()
+    @StateObject private var accessibilityMonitor = AccessibilityMonitor.shared
+    @StateObject private var spellCheckMonitor = SpellCheckMonitor.shared
+
     @State private var text = """
     这是一个示例文本。你可以在这里输入或粘贴中文文本，应用会自动为你提供英文翻译建议。
 
     试试输入一些中文词汇，比如"人工智能"、"机器学习"、"深度学习"等，看看翻译效果。
+
+    💡 Spello 会实时监控任何应用（如 Notes、TextEdit）中的文本输入，自动显示翻译建议！
     """
     @State private var isAutomaticSpellingCorrectionEnabled = true
     @State private var selectedLanguage: String? = nil
     @State private var showingSuggestions = false
     @State private var suggestions: [Suggestion] = []
     @State private var isCheckingSpelling = false
+    @State private var hasAccessibilityPermission = false
+    @State private var showingPermissionAlert = false
 
     private let availableLanguages = [
         "en_US": "English (US)",
@@ -87,6 +95,45 @@ struct ContentView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
 
+            // System-wide monitoring status section
+            VStack(spacing: 8) {
+                HStack {
+                    // Monitoring status indicator
+                    HStack(spacing: 6) {
+                        Image(systemName: accessibilityMonitor.isMonitoring ? "circle.fill" : "circle")
+                            .foregroundColor(accessibilityMonitor.isMonitoring ? .green : .secondary)
+                            .font(.caption)
+                        Text(accessibilityMonitor.isMonitoring ? "系统监控已激活" : "系统监控未激活")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Permission status indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: hasAccessibilityPermission ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundColor(hasAccessibilityPermission ? .green : .orange)
+                        Text(hasAccessibilityPermission ? "辅助功能已授权" : "需要辅助功能权限")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if !hasAccessibilityPermission {
+                        Button("授予权限") {
+                            requestAccessibilityPermission()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+            }
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+
+            Divider()
+
             // Status bar
             HStack {
                 Text("Characters: \(text.count)")
@@ -121,6 +168,26 @@ struct ContentView: View {
         .onAppear {
             // Set up initial spell checking
             NSSpellChecker.shared.automaticallyIdentifiesLanguages = true
+            // Check accessibility permission status
+            checkAccessibilityPermission()
+            // Try to start monitoring if we have permission
+            startSystemWideMonitoring()
+            // Start timer to periodically check permission status
+            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                checkAccessibilityPermission()
+                // Auto-start monitoring when permission is granted
+                if hasAccessibilityPermission && !accessibilityMonitor.isMonitoring {
+                    startSystemWideMonitoring()
+                }
+            }
+        }
+        .alert("需要辅助功能权限", isPresented: $showingPermissionAlert) {
+            Button("打开系统偏好设置") {
+                openSystemPreferences()
+            }
+            Button("稍后", role: .cancel) { }
+        } message: {
+            Text("Spello 需要辅助功能权限来监控其他应用中的文本输入。\n\n请在：\n系统设置 → 隐私与安全性 → 辅助功能\n\n中找到并勾选 Spello。")
         }
     }
 
@@ -155,6 +222,32 @@ struct ContentView: View {
                     self.showingSuggestions = true
                 }
             }
+        }
+    }
+
+    private func checkAccessibilityPermission() {
+        hasAccessibilityPermission = accessibilityMonitor.checkAccessibilityPermission()
+    }
+
+    private func requestAccessibilityPermission() {
+        accessibilityMonitor.requestAccessibilityPermission()
+        showingPermissionAlert = true
+    }
+
+    private func openSystemPreferences() {
+        // Open Accessibility settings pane
+        // Reference: https://jano.dev/apple/macos/swift/2025/01/08/Accessibility-Permission.html
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func startSystemWideMonitoring() {
+        if hasAccessibilityPermission {
+            accessibilityMonitor.startMonitoring()
+            spellCheckMonitor.startMonitoring()
+        } else {
+            requestAccessibilityPermission()
         }
     }
 }
