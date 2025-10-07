@@ -160,19 +160,21 @@ class ChineseDetectingTextView: NSTextView {
         textStorage.removeAttribute(.underlineStyle, range: fullRange)
         textStorage.removeAttribute(.underlineColor, range: fullRange)
 
-        // Priority 1: Detect sentences
-        let sentencePattern = "[\\p{Han}][^。！？\\n]*[。！？]"
+        // Priority 1: Detect Chinese sentences (split by any punctuation)
+        // Includes: Chinese/English punctuation and brackets
+        let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;（）()【】\\[\\]「」『』{}\\n]*[。！？；，、.!?,;（）()【】\\[\\]「」『』{}]"
         if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
             let matches = sentenceRegex.matches(in: string, options: [], range: fullRange)
             chineseRanges.append(contentsOf: matches.map { $0.range })
         }
 
-        // Priority 2: Detect individual words not in sentences
+        // Priority 2: Detect individual Chinese words (2+ characters) not in sentences
         let wordPattern = "[\\p{Han}]{2,}"
         if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
             let matches = wordRegex.matches(in: string, options: [], range: fullRange)
 
             for match in matches {
+                // Skip if already covered by a sentence
                 let covered = chineseRanges.contains { NSIntersectionRange($0, match.range).length > 0 }
                 if !covered {
                     chineseRanges.append(match.range)
