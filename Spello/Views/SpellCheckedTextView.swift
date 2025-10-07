@@ -233,7 +233,10 @@ class ChineseDetectingTextView: NSTextView {
             text: text,
             range: range,
             onSelect: { [weak self] translation in
-                self?.replaceCharacters(in: range, with: translation)
+                guard let self = self else { return }
+                self.replaceCharacters(in: range, with: translation)
+                // Re-detect Chinese text after replacement to update all ranges
+                self.detectAndUnderlineChineseText()
                 popover.close()
             },
             onIgnore: { [weak self] in
