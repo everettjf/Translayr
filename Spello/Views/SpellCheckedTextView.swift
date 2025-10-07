@@ -122,11 +122,8 @@ struct SpellCheckedTextView: NSViewRepresentable {
                     let text = (textView.string as NSString).substring(with: range)
                     print("✅ Found Chinese text: \(text)")
 
-                    // Create and show menu
-                    let menu = chineseTextView.createTranslationMenu(for: text, range: range)
-                    if let event = NSApp.currentEvent {
-                        NSMenu.popUpContextMenu(menu, with: event, for: textView)
-                    }
+                    // Show floating window with translations
+                    chineseTextView.showTranslationWindow(for: text, range: range, at: charIndex)
                     return true
                 }
             }
@@ -141,6 +138,7 @@ struct SpellCheckedTextView: NSViewRepresentable {
 class ChineseDetectingTextView: NSTextView {
     var chineseRanges: [NSRange] = []
     private var translationCache: [String: [String]] = [:]
+    private var currentPopover: NSPopover?
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
@@ -200,28 +198,60 @@ class ChineseDetectingTextView: NSTextView {
         print("📝 Detected \(chineseRanges.count) Chinese ranges")
     }
 
-    // Handle click at specific character index
-    func handleClickAtIndex(_ charIndex: Int, event: NSEvent?) {
-        print("\n🖱️ Handling click at index: \(charIndex)")
-        print("   Chinese ranges count: \(chineseRanges.count)")
+    // Show translation window at clicked text
+    func showTranslationWindow(for text: String, range: NSRange, at charIndex: Int) {
+        print("🪟 Showing translation window for: \(text)")
 
-        // Check if clicked on Chinese text
-        for (i, range) in chineseRanges.enumerated() {
-            print("   Range \(i): \(range)")
-            if NSLocationInRange(charIndex, range) {
-                let text = (string as NSString).substring(with: range)
-                print("✅ HIT! Clicked Chinese: \(text)")
+        // Close existing popover if any
+        currentPopover?.close()
 
-                // Create and show menu at click location
-                let menu = createTranslationMenu(for: text, range: range)
-                if let event = event {
-                    NSMenu.popUpContextMenu(menu, with: event, for: self)
-                }
-                return
+        // Get the rect for the clicked range
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer else { return }
+
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        let boundingRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+
+        // Convert to view coordinates
+        let rect = NSRect(
+            x: boundingRect.origin.x + textContainerInset.width,
+            y: boundingRect.origin.y + textContainerInset.height,
+            width: boundingRect.width,
+            height: boundingRect.height
+        )
+
+        // Create popover
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 300, height: 200)
+        popover.behavior = .transient
+        popover.animates = true
+
+        // Create SwiftUI view for popover content
+        let contentView = TranslationPopoverView(
+            text: text,
+            range: range,
+            onSelect: { [weak self] translation in
+                self?.replaceCharacters(in: range, with: translation)
+                popover.close()
+            },
+            onIgnore: { [weak self] in
+                self?.removeUnderline(for: range)
+                popover.close()
             }
-        }
+        )
 
-        print("   ⚪ No Chinese range matched")
+        popover.contentViewController = NSHostingController(rootView: contentView)
+        currentPopover = popover
+
+        // Show popover relative to the text
+        popover.show(relativeTo: rect, of: self, preferredEdge: .maxY)
+    }
+
+    private func removeUnderline(for range: NSRange) {
+        textStorage?.removeAttribute(.underlineStyle, range: range)
+        textStorage?.removeAttribute(.underlineColor, range: range)
+        textStorage?.removeAttribute(.link, range: range)
+        textStorage?.removeAttribute(.cursor, range: range)
     }
 
     // MARK: - Translation Menu
@@ -295,5 +325,123 @@ class ChineseDetectingTextView: NSTextView {
 
         textStorage?.removeAttribute(.underlineStyle, range: range)
         textStorage?.removeAttribute(.underlineColor, range: range)
+    }
+}
+
+// MARK: - Translation Popover View
+
+struct TranslationPopoverView: View {
+    let text: String
+    let range: NSRange
+    let onSelect: (String) -> Void
+    let onIgnore: () -> Void
+
+    @State private var translations: [String] = []
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                Text("Translate")
+                    .font(.headline)
+                Spacer()
+                Button(action: onIgnore) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.bottom, 4)
+
+            // Original text
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Original")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text(text)
+                    .font(.body)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(6)
+            }
+
+            Divider()
+
+            // Translations
+            if isLoading {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                    Text("Translating...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else if translations.isEmpty {
+                Text("No translations available")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Suggestions")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    ScrollView {
+                        VStack(spacing: 6) {
+                            ForEach(translations.prefix(5), id: \.self) { translation in
+                                Button(action: {
+                                    onSelect(translation)
+                                }) {
+                                    HStack {
+                                        Text(translation)
+                                            .font(.body)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                        Image(systemName: "arrow.right.circle")
+                                            .foregroundColor(.accentColor)
+                                    }
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(Color.gray.opacity(0.05))
+                                    .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 150)
+                }
+            }
+
+            // Ignore button
+            Button(action: onIgnore) {
+                HStack {
+                    Image(systemName: "eye.slash")
+                    Text("Ignore")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .frame(width: 300)
+        .task {
+            await loadTranslations()
+        }
+    }
+
+    private func loadTranslations() async {
+        isLoading = true
+        let item = DetectedTextItem(text: text, range: range, type: .sentence)
+        let results = await SpellCheckMonitor.shared.translateItem(item)
+        translations = results
+        isLoading = false
     }
 }
