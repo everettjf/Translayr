@@ -1,0 +1,12 @@
+This file is a placeholder. ContentView_New.swift needs to be manually deleted from Xcode.
+
+Please:
+1. Open Spello.xcodeproj in Xcode
+2. Find ContentView_New.swift in the project navigator
+3. Right-click > Delete > Move to Trash
+4. Clean build folder (Shift+Cmd+K)
+5. Build again
+
+Or use terminal:
+cd /Users/eevv/focus/Spello/Spello
+rm -f ContentView_New.swift
