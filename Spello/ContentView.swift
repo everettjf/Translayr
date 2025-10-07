@@ -14,17 +14,16 @@ struct ContentView: View {
     @StateObject private var spellCheckMonitor = SpellCheckMonitor.shared
 
     @State private var text = """
-    这是一个示例文本。你可以在这里输入或粘贴中文文本，应用会自动为你提供英文翻译建议。
+    美国数十年来主导全球科技市场。但中国想要改变这一点。
 
-    试试输入一些中文词汇，比如"人工智能"、"机器学习"、"深度学习"等，看看翻译效果。
+    这个世界第二大经济体正投入大量资金于人工智能（AI）和机器人技术。至关重要的是，北京也在大力投资生产驱动这些尖端技术的高阶晶片（芯片）。
 
-    💡 Spello 会实时监控任何应用（如 Notes、TextEdit）中的文本输入，自动显示翻译建议！
+    上个月，总部位于矽谷的AI晶片巨头英伟达（Nvidia，辉达）的老板黄仁勋警告称，中国在晶片开发方面仅比美国“落后几纳秒”。
+
+    💡 Spello monitors text input in real-time and provides translations!
     """
     @State private var isAutomaticSpellingCorrectionEnabled = true
     @State private var selectedLanguage: String? = nil
-    @State private var showingSuggestions = false
-    @State private var suggestions: [Suggestion] = []
-    @State private var isCheckingSpelling = false
     @State private var hasAccessibilityPermission = false
     @State private var showingPermissionAlert = false
 
@@ -41,46 +40,6 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
-            HStack {
-                // Check button
-                Button(action: performSpellCheck) {
-                    HStack {
-                        if isCheckingSpelling {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else {
-                            Image(systemName: "text.magnifyingglass")
-                        }
-                        Text("Check Spelling")
-                    }
-                }
-                .disabled(isCheckingSpelling || text.isEmpty)
-                .buttonStyle(.borderedProminent)
-
-                Spacer()
-
-                // Settings
-                HStack(spacing: 16) {
-                    // Auto-correction toggle
-                    Toggle("Auto-correct", isOn: $isAutomaticSpellingCorrectionEnabled)
-                        .toggleStyle(SwitchToggleStyle())
-
-                    // Language selector
-                    Picker("Language", selection: $selectedLanguage) {
-                        Text("Auto-detect").tag(String?.none)
-                        ForEach(Array(availableLanguages.keys.sorted()), id: \.self) { key in
-                            Text(availableLanguages[key] ?? key).tag(String?.some(key))
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 150)
-                }
-            }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor))
-
-            Divider()
 
             // Text editor
             SpellCheckedTextView(
@@ -103,7 +62,7 @@ struct ContentView: View {
                         Image(systemName: accessibilityMonitor.isMonitoring ? "circle.fill" : "circle")
                             .foregroundColor(accessibilityMonitor.isMonitoring ? .green : .secondary)
                             .font(.caption)
-                        Text(accessibilityMonitor.isMonitoring ? "系统监控已激活" : "系统监控未激活")
+                        Text(accessibilityMonitor.isMonitoring ? "Monitoring Active" : "Monitoring Inactive")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -114,13 +73,13 @@ struct ContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: hasAccessibilityPermission ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundColor(hasAccessibilityPermission ? .green : .orange)
-                        Text(hasAccessibilityPermission ? "辅助功能已授权" : "需要辅助功能权限")
+                        Text(hasAccessibilityPermission ? "Accessibility Granted" : "Accessibility Required")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
 
                     if !hasAccessibilityPermission {
-                        Button("授予权限") {
+                        Button("Grant Permission") {
                             requestAccessibilityPermission()
                         }
                         .buttonStyle(.bordered)
@@ -141,30 +100,12 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
 
                 Spacer()
-
-                if !suggestions.isEmpty {
-                    Button("View \(suggestions.count) spelling issues") {
-                        showingSuggestions = true
-                    }
-                    .font(.caption)
-                    .buttonStyle(.borderless)
-                }
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background(Color(NSColor.controlBackgroundColor))
         }
         .frame(minWidth: 800, minHeight: 600)
-        .sheet(isPresented: $showingSuggestions, onDismiss: {
-            showingSuggestions = false
-        }) {
-            SuggestionsView(
-                suggestions: $suggestions,
-                text: $text,
-                isPresented: $showingSuggestions,
-                spellService: spellService
-            )
-        }
         .onAppear {
             // Set up initial spell checking
             NSSpellChecker.shared.automaticallyIdentifiesLanguages = true
@@ -181,47 +122,13 @@ struct ContentView: View {
                 }
             }
         }
-        .alert("需要辅助功能权限", isPresented: $showingPermissionAlert) {
-            Button("打开系统偏好设置") {
+        .alert("Accessibility Permission Required", isPresented: $showingPermissionAlert) {
+            Button("Open System Preferences") {
                 openSystemPreferences()
             }
-            Button("稍后", role: .cancel) { }
+            Button("Later", role: .cancel) { }
         } message: {
-            Text("Spello 需要辅助功能权限来监控其他应用中的文本输入。\n\n请在：\n系统设置 → 隐私与安全性 → 辅助功能\n\n中找到并勾选 Spello。")
-        }
-    }
-
-    private func performSpellCheck() {
-        guard !text.isEmpty else { return }
-
-        isCheckingSpelling = true
-
-        Task {
-            // 先获取系统拼写检查结果
-            let systemSuggestions = await Task.detached {
-                self.spellService.scanSystem(text: self.text, language: self.selectedLanguage)
-            }.value
-
-            // 如果启用了 AI 翻译，获取翻译建议
-            var modelSuggestions: [Suggestion] = []
-            if spellService.isLocalModelEnabled {
-                modelSuggestions = await spellService.analyzeWithLocalModelAsync(
-                    text: text,
-                    language: selectedLanguage
-                )
-            }
-
-            // 合并建议
-            let mergedSuggestions = spellService.merge(systemSuggestions, modelSuggestions)
-
-            await MainActor.run {
-                self.suggestions = mergedSuggestions
-                self.isCheckingSpelling = false
-
-                if !mergedSuggestions.isEmpty {
-                    self.showingSuggestions = true
-                }
-            }
+            Text("Spello needs accessibility permission to monitor text input in other apps.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nand enable Spello.")
         }
     }
 
