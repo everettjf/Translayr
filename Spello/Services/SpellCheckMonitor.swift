@@ -67,8 +67,8 @@ class SpellCheckMonitor: ObservableObject {
 
         var items: [DetectedTextItem] = []
 
-        // Priority 1: Detect sentences (Chinese text ending with punctuation)
-        let sentencePattern = "[\\p{Han}][^。！？\\n]*[。！？]"
+        // Priority 1: Detect sentences (split by any punctuation)
+        let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;（）()【】\\[\\]「」『』{}\\n]*[。！？；，、.!?,;（）()【】\\[\\]「」『』{}]"
         if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
             let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
 
@@ -84,7 +84,7 @@ class SpellCheckMonitor: ObservableObject {
             }
         }
 
-        // Priority 2: Detect individual Chinese words (2+ characters)
+        // Priority 2: Detect individual Chinese words (2+ characters) not in sentences
         let coveredRanges = items.map { $0.range }
         let wordPattern = "[\\p{Han}]{2,}"
         if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
