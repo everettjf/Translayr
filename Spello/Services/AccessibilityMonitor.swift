@@ -41,13 +41,15 @@ class AccessibilityMonitor: ObservableObject {
 
     /// 开始监控系统文本输入
     func startMonitoring() {
+        print("\n🚀 [AccessibilityMonitor] startMonitoring called")
+
         guard checkAccessibilityPermission() else {
-            print("⚠️ Accessibility permission not granted")
+            print("⚠️ [AccessibilityMonitor] Permission not granted")
             requestAccessibilityPermission()
             return
         }
 
-        print("✅ Starting accessibility monitoring")
+        print("✅ [AccessibilityMonitor] Permission granted, starting monitoring")
         isMonitoring = true
 
         // 注册通知观察焦点变化
@@ -59,6 +61,8 @@ class AccessibilityMonitor: ObservableObject {
                 self?.checkFocusedElement()
             }
         }
+
+        print("✅ [AccessibilityMonitor] Timer started")
     }
 
     /// 停止监控
@@ -100,24 +104,99 @@ class AccessibilityMonitor: ObservableObject {
     }
 
     private func checkFocusedElement() {
-        // 获取当前系统焦点元素
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedElement: AnyObject?
-
-        let error = AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement)
-
-        guard error == .success, let element = focusedElement else {
+        // Get the currently active application
+        guard let activeApp = NSWorkspace.shared.frontmostApplication else {
+            print("⚠️ [AccessibilityMonitor] No frontmost app")
             return
         }
 
-        // 获取元素的文本内容
-        let axElement = element as! AXUIElement
-        if let text = getTextFromElement(axElement) {
-            if text != currentText {
-                currentText = text
-                currentElement = axElement
-                print("📝 Text changed: \(text)")
+        let appName = activeApp.localizedName ?? "unknown"
+        let pid = activeApp.processIdentifier
+
+        // Skip our own app
+        if pid == ProcessInfo.processInfo.processIdentifier {
+            return
+        }
+
+        let appElement = AXUIElementCreateApplication(pid)
+
+        print("\n🔍 [AccessibilityMonitor] Checking app: \(appName) (PID: \(pid))")
+
+        // Check if we can access ANY attribute from this app
+        var attributeNames: CFArray?
+        let attrError = AXUIElementCopyAttributeNames(appElement, &attributeNames)
+        if attrError == .success {
+            if let names = attributeNames as? [String] {
+                print("   Available app attributes: \(names.count) - \(names.prefix(5).joined(separator: ", "))")
             }
+        } else {
+            print("   ⚠️ Cannot even get attribute names from app: error \(attrError.rawValue)")
+            print("   This likely means Spello doesn't have proper accessibility access to this app")
+            print("   Try: 1) Restart \(appName), 2) Remove and re-add Spello in Accessibility settings")
+            return
+        }
+
+        // Try multiple approaches to get text
+
+        // Approach 1: Get focused UI element
+        var focusedElement: AnyObject?
+        let focusError = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElement)
+
+        if focusError == .success, let element = focusedElement {
+            print("✅ [AccessibilityMonitor] Got focused element")
+
+            let axElement = element as! AXUIElement
+            var roleValue: AnyObject?
+            AXUIElementCopyAttributeValue(axElement, kAXRoleAttribute as CFString, &roleValue)
+            let role = roleValue as? String ?? "unknown"
+            print("   Role: \(role)")
+
+            if let text = getTextFromElement(axElement) {
+                if text != currentText {
+                    print("✅ [AccessibilityMonitor] Text changed in \(appName)")
+                    print("   Length: \(text.count)")
+                    print("   Preview: \(String(text.prefix(100)))")
+                    currentText = text
+                    currentElement = axElement
+                }
+                return
+            }
+        } else {
+            print("⚠️ [AccessibilityMonitor] Cannot get focused element: error \(focusError.rawValue)")
+        }
+
+        // Approach 2: Try to get the main window and its text
+        var mainWindow: AnyObject?
+        let windowError = AXUIElementCopyAttributeValue(appElement, kAXMainWindowAttribute as CFString, &mainWindow)
+
+        if windowError == .success, let window = mainWindow {
+            print("✅ [AccessibilityMonitor] Got main window, trying to get text")
+
+            let axWindow = window as! AXUIElement
+            // Try to get focused element from window
+            var windowFocused: AnyObject?
+            let wFocusErr = AXUIElementCopyAttributeValue(axWindow, kAXFocusedUIElementAttribute as CFString, &windowFocused)
+
+            if wFocusErr == .success, let element = windowFocused {
+                let axElement = element as! AXUIElement
+                if let text = getTextFromElement(axElement) {
+                    if text != currentText {
+                        print("✅ [AccessibilityMonitor] Got text from window's focused element")
+                        currentText = text
+                        currentElement = axElement
+                    }
+                    return
+                }
+            }
+        } else {
+            print("⚠️ [AccessibilityMonitor] Cannot get main window: error \(windowError.rawValue)")
+        }
+
+        // Clear if no text found
+        if currentText != "" {
+            print("⚠️ [AccessibilityMonitor] No text accessible from \(appName)")
+            currentText = ""
+            currentElement = nil
         }
     }
 
@@ -128,7 +207,10 @@ class AccessibilityMonitor: ObservableObject {
         let error = AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &value)
 
         if error == .success, let text = value as? String {
+            print("✅ [AccessibilityMonitor] Got text via AXValue: \(text.count) chars")
             return text
+        } else {
+            print("⚠️ [AccessibilityMonitor] Failed to get AXValue: \(error.rawValue)")
         }
 
         // 尝试获取选中的文本
@@ -136,7 +218,17 @@ class AccessibilityMonitor: ObservableObject {
         let selectedError = AXUIElementCopyAttributeValue(element, kAXSelectedTextAttribute as CFString, &selectedText)
 
         if selectedError == .success, let text = selectedText as? String {
+            print("✅ [AccessibilityMonitor] Got text via AXSelectedText: \(text.count) chars")
             return text
+        } else {
+            print("⚠️ [AccessibilityMonitor] Failed to get AXSelectedText: \(selectedError.rawValue)")
+        }
+
+        // Try to get all available attributes for debugging
+        var attributeNames: CFArray?
+        let attrError = AXUIElementCopyAttributeNames(element, &attributeNames)
+        if attrError == .success, let names = attributeNames as? [String] {
+            print("📋 [AccessibilityMonitor] Available attributes: \(names.joined(separator: ", "))")
         }
 
         return nil

@@ -31,12 +31,13 @@ class SpellCheckMonitor: ObservableObject {
     // MARK: - Public Methods
 
     func startMonitoring() {
-        print("🚀 Starting spell check monitoring")
+        print("\n🚀 [SpellCheckMonitor] Starting spell check monitoring")
         accessibilityMonitor.startMonitoring()
+        print("✅ [SpellCheckMonitor] AccessibilityMonitor started")
     }
 
     func stopMonitoring() {
-        print("⏹ Stopping spell check monitoring")
+        print("⏹ [SpellCheckMonitor] Stopping spell check monitoring")
         accessibilityMonitor.stopMonitoring()
     }
 
@@ -59,11 +60,15 @@ class SpellCheckMonitor: ObservableObject {
     /// Detect Chinese text (sentences first, then words)
     private func detectChineseText(_ text: String) {
         guard !text.isEmpty else {
-            detectedItems = []
+            if !detectedItems.isEmpty {
+                print("🔍 [SpellCheckMonitor] Text empty, clearing items")
+                detectedItems = []
+            }
             return
         }
 
-        print("🔍 Detecting Chinese text: \(text)")
+        print("\n🔍 [SpellCheckMonitor] Detecting Chinese in text (\(text.count) chars)")
+        print("   First 100 chars: \(String(text.prefix(100)))")
 
         var items: [DetectedTextItem] = []
 
@@ -71,10 +76,12 @@ class SpellCheckMonitor: ObservableObject {
         let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;（）()【】\\[\\]「」『』{}\\n]*[。！？；，、.!?,;（）()【】\\[\\]「」『』{}]"
         if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
             let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
+            print("   Found \(matches.count) sentence matches")
 
             for match in matches {
                 if let range = Range(match.range, in: text) {
                     let sentence = String(text[range])
+                    print("   Sentence: \(sentence)")
                     items.append(DetectedTextItem(
                         text: sentence,
                         range: match.range,
@@ -89,22 +96,27 @@ class SpellCheckMonitor: ObservableObject {
         let wordPattern = "[\\p{Han}]{2,}"
         if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
             let matches = wordRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
+            print("   Found \(matches.count) word matches (before filtering)")
 
+            var wordCount = 0
             for match in matches {
                 let covered = coveredRanges.contains { NSIntersectionRange($0, match.range).length > 0 }
                 if !covered, let range = Range(match.range, in: text) {
                     let word = String(text[range])
+                    print("   Word: \(word)")
                     items.append(DetectedTextItem(
                         text: word,
                         range: match.range,
                         type: .word
                     ))
+                    wordCount += 1
                 }
             }
+            print("   Added \(wordCount) unique words")
         }
 
         detectedItems = items
-        print("📋 Detected \(items.count) items")
+        print("📋 [SpellCheckMonitor] Total detected items: \(items.count)")
     }
 }
 
