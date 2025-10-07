@@ -27,6 +27,11 @@ struct SpellCheckedTextView: NSViewRepresentable {
         textView.usesFontPanel = false
         textView.usesRuler = false
 
+        // Enable context menu
+        textView.autoresizingMask = [.width]
+
+        print("✅ ChineseDetectingTextView configured")
+
         // Fix layout issues
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
@@ -102,6 +107,22 @@ struct SpellCheckedTextView: NSViewRepresentable {
 
         // Context menu customization
         func textView(_ textView: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            print("\n🚨 Delegate menu method CALLED!")
+            print("   Character index: \(charIndex)")
+
+            // Check if it's a ChineseDetectingTextView
+            guard let chineseTextView = textView as? ChineseDetectingTextView else {
+                return menu
+            }
+
+            // Check if clicked on Chinese text
+            if let chineseMenu = chineseTextView.createMenuForChineseText(at: charIndex) {
+                print("✅ Chinese text menu created!")
+                return chineseMenu
+            }
+
+            print("⚪ Not Chinese text, showing default menu")
+
             // Get the range of the word at the click location
             let clickedRange = textView.selectionRange(for: charIndex)
             let clickedWord = (textView.string as NSString).substring(with: clickedRange)
@@ -222,7 +243,7 @@ extension NSTextView {
 
 class ChineseDetectingTextView: NSTextView {
     private var chineseRanges: [NSRange] = []
-    private var clickedRange: NSRange?
+    private var translationCache: [String: [String]] = [:]
 
     override func didChangeText() {
         super.didChangeText()
@@ -265,84 +286,212 @@ class ChineseDetectingTextView: NSTextView {
             textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
             textStorage.addAttribute(.underlineColor, value: NSColor.red, range: range)
         }
+
+        print("📝 Detected \(chineseRanges.count) Chinese ranges")
     }
 
-    // Handle clicks on underlined text
-    override func mouseDown(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        let index = characterIndex(for: point)
+    // Public method to create menu for Chinese text at given character index
+    func createMenuForChineseText(at charIndex: Int) -> NSMenu? {
+        print("   Checking Chinese ranges at index: \(charIndex)")
+        print("   Chinese ranges count: \(chineseRanges.count)")
 
         // Check if clicked on Chinese text
-        clickedRange = nil
-        for range in chineseRanges {
-            if NSLocationInRange(index, range) {
-                clickedRange = range
-                showTranslationPopup(for: range, at: point)
-                return
+        for (i, range) in chineseRanges.enumerated() {
+            print("   Range \(i): \(range)")
+            if NSLocationInRange(charIndex, range) {
+                let text = (string as NSString).substring(with: range)
+                print("✅ HIT! Right-clicked Chinese: \(text)")
+
+                // Show NSSpellChecker panels demo
+                showSpellCheckerPanelsDemo(for: text, range: range)
+
+                return createTranslationMenu(for: text, range: range)
             }
         }
 
-        super.mouseDown(with: event)
+        print("   ⚪ No Chinese range matched")
+        return nil
     }
 
-    private func showTranslationPopup(for range: NSRange, at point: NSPoint) {
-        let text = (string as NSString).substring(with: range)
-        print("🖱️ Clicked Chinese text: \(text)")
+    // MARK: - NSSpellChecker Panels Demo
 
-        clickedRange = range
+    private func showSpellCheckerPanelsDemo(for text: String, range: NSRange) {
+        print("\n📋 NSSpellChecker Panels Demo")
+        print("=====================================")
 
-        // Translate and show in substitution panel
+        let checker = NSSpellChecker.shared
+
+        // 1. Spelling Panel
+        print("\n1️⃣ Spelling Panel")
+        let spellingPanel = checker.spellingPanel
+        print("   Type: \(type(of: spellingPanel))")
+        print("   Title: \(spellingPanel.title)")
+
+        // Update spelling panel with the Chinese text
+        checker.updateSpellingPanel(withMisspelledWord: text)
+        spellingPanel.makeKeyAndOrderFront(self)
+        print("   ✅ Spelling panel shown with word: \(text)")
+
+        // 2. Substitutions Panel
+        print("\n2️⃣ Substitutions Panel")
+        let substitutionsPanel = checker.substitutionsPanel
+        print("   Type: \(type(of: substitutionsPanel))")
+        print("   Title: \(substitutionsPanel.title)")
+
+        // Show substitutions panel
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            substitutionsPanel.makeKeyAndOrderFront(self)
+            print("   ✅ Substitutions panel shown")
+        }
+
+        // 3. Update with Grammar String (for highlighting)
+        print("\n3️⃣ Update Spelling Panel with Grammar Detail")
+        let grammarDetail: [String: Any] = [
+            NSGrammarRange: NSValue(range: range),
+            NSGrammarUserDescription: "Chinese text detected: '\(text)'",
+            NSGrammarCorrections: ["Translation 1", "Translation 2", "Translation 3"]
+        ]
+        checker.updateSpellingPanel(withGrammarString: string, detail: grammarDetail)
+        print("   ✅ Updated with grammar detail")
+
+        // 4. Add Accessory View to Spelling Panel
+        print("\n4️⃣ Add Accessory View to Spelling Panel")
+        if checker.accessoryView == nil {
+            let accessoryView = createAccessoryView()
+            checker.accessoryView = accessoryView
+            print("   ✅ Accessory view added to spelling panel")
+        } else {
+            print("   ℹ️ Accessory view already exists")
+        }
+
+        // 5. Add Accessory ViewController to Substitutions Panel
+        print("\n5️⃣ Add Accessory ViewController to Substitutions Panel")
+        if checker.substitutionsPanelAccessoryViewController == nil {
+            let accessoryVC = createAccessoryViewController()
+            checker.substitutionsPanelAccessoryViewController = accessoryVC
+            print("   ✅ Accessory view controller added to substitutions panel")
+        } else {
+            print("   ℹ️ Accessory view controller already exists")
+        }
+
+        // 6. Update Panels
+        print("\n6️⃣ Update Panels")
+        checker.updatePanels()
+        print("   ✅ Panels updated")
+
+        print("\n=====================================\n")
+    }
+
+    private func createAccessoryView() -> NSView {
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 60))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.1).cgColor
+
+        let label = NSTextField(labelWithString: "🎯 Custom Accessory View")
+        label.frame = NSRect(x: 10, y: 30, width: 280, height: 20)
+        label.font = NSFont.boldSystemFont(ofSize: 13)
+        view.addSubview(label)
+
+        let button = NSButton(title: "Test Button", target: nil, action: nil)
+        button.frame = NSRect(x: 10, y: 5, width: 100, height: 20)
+        view.addSubview(button)
+
+        return view
+    }
+
+    private func createAccessoryViewController() -> NSViewController {
+        let viewController = NSViewController()
+
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 80))
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.1).cgColor
+
+        let label = NSTextField(labelWithString: "🚀 Substitutions Panel Accessory")
+        label.frame = NSRect(x: 10, y: 50, width: 280, height: 20)
+        label.font = NSFont.boldSystemFont(ofSize: 13)
+        view.addSubview(label)
+
+        let infoLabel = NSTextField(labelWithString: "This is a custom accessory view controller")
+        infoLabel.frame = NSRect(x: 10, y: 30, width: 280, height: 15)
+        infoLabel.font = NSFont.systemFont(ofSize: 11)
+        infoLabel.textColor = .secondaryLabelColor
+        view.addSubview(infoLabel)
+
+        let slider = NSSlider(value: 0.5, minValue: 0, maxValue: 1, target: nil, action: nil)
+        slider.frame = NSRect(x: 10, y: 5, width: 280, height: 20)
+        view.addSubview(slider)
+
+        viewController.view = view
+        return viewController
+    }
+
+    private func createTranslationMenu(for text: String, range: NSRange) -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Translate '\(text)'...", action: nil, keyEquivalent: "")
+        menu.addItem(NSMenuItem.separator())
+
+        // Add "Translate" option that triggers async translation
+        let translateItem = menu.addItem(withTitle: "Get Translation", action: #selector(translateNow(_:)), keyEquivalent: "")
+        translateItem.representedObject = ["text": text, "range": NSValue(range: range)]
+
+        menu.addItem(NSMenuItem.separator())
+        let ignoreItem = menu.addItem(withTitle: "Ignore", action: #selector(ignoreUnderline(_:)), keyEquivalent: "")
+        ignoreItem.representedObject = NSValue(range: range)
+
+        return menu
+    }
+
+    @objc private func translateNow(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: Any],
+              let text = info["text"] as? String,
+              let rangeValue = info["range"] as? NSValue else { return }
+
+        let range = rangeValue.rangeValue
+
+        print("🔄 Translating: \(text)")
+
+        // Show translations
         Task { @MainActor in
             let item = DetectedTextItem(text: text, range: range, type: .sentence)
             let translations = await SpellCheckMonitor.shared.translateItem(item)
 
             if !translations.isEmpty {
-                // Show substitution panel with translations
-                showSubstitutionPanel(original: text, suggestions: translations)
-            } else {
-                print("⚠️ No translations found")
+                self.showTranslationSelectionMenu(original: text, translations: translations, range: range)
             }
         }
     }
 
-    private func showSubstitutionPanel(original: String, suggestions: [String]) {
-        // Use NSSpellChecker's substitution panel
-        let panel = NSSpellChecker.shared.substitutionsPanel
-        panel.makeKeyAndOrderFront(self)
-
-        // Or show a simple context menu with translations
+    private func showTranslationSelectionMenu(original: String, translations: [String], range: NSRange) {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Translate '\(original)':", action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: "Select translation:", action: nil, keyEquivalent: "")
         menu.addItem(NSMenuItem.separator())
 
-        for (index, translation) in suggestions.prefix(5).enumerated() {
+        for translation in translations.prefix(5) {
             let item = menu.addItem(withTitle: translation, action: #selector(replaceWithTranslation(_:)), keyEquivalent: "")
-            item.target = self
-            item.tag = index
-            item.representedObject = translation
+            item.representedObject = ["translation": translation, "range": NSValue(range: range)]
         }
 
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Ignore", action: #selector(ignoreText), keyEquivalent: "")
-
-        NSMenu.popUpContextMenu(menu, with: NSApp.currentEvent!, for: self)
+        // Show menu at mouse location
+        if let event = NSApp.currentEvent {
+            NSMenu.popUpContextMenu(menu, with: event, for: self)
+        }
     }
 
     @objc private func replaceWithTranslation(_ sender: NSMenuItem) {
-        guard let range = clickedRange,
-              let translation = sender.representedObject as? String else { return }
+        guard let info = sender.representedObject as? [String: Any],
+              let translation = info["translation"] as? String,
+              let rangeValue = info["range"] as? NSValue else { return }
+
+        let range = rangeValue.rangeValue
 
         print("✏️ Replacing with: \(translation)")
         replaceCharacters(in: range, with: translation)
-
-        // Remove underline
-        textStorage?.removeAttribute(.underlineStyle, range: NSRange(location: range.location, length: translation.count))
-        textStorage?.removeAttribute(.underlineColor, range: NSRange(location: range.location, length: translation.count))
     }
 
-    @objc private func ignoreText() {
-        guard let range = clickedRange else { return }
-        // Remove underline for this range
+    @objc private func ignoreUnderline(_ sender: NSMenuItem) {
+        guard let rangeValue = sender.representedObject as? NSValue else { return }
+        let range = rangeValue.rangeValue
+
         textStorage?.removeAttribute(.underlineStyle, range: range)
         textStorage?.removeAttribute(.underlineColor, range: range)
     }
