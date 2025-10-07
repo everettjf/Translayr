@@ -16,6 +16,7 @@ class SpellCheckMonitor: ObservableObject {
 
     private let accessibilityMonitor = AccessibilityMonitor.shared
     private let spellService = SpellService()
+    private let overlayManager = OverlayWindowManager.shared
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
@@ -63,6 +64,7 @@ class SpellCheckMonitor: ObservableObject {
             if !detectedItems.isEmpty {
                 print("🔍 [SpellCheckMonitor] Text empty, clearing items")
                 detectedItems = []
+                overlayManager.hideAll()
             }
             return
         }
@@ -117,6 +119,34 @@ class SpellCheckMonitor: ObservableObject {
 
         detectedItems = items
         print("📋 [SpellCheckMonitor] Total detected items: \(items.count)")
+
+        // Show overlay windows for detected items (only for external apps)
+        showOverlayWindows(for: items)
+    }
+
+    /// Show overlay windows for detected Chinese text in external apps
+    private func showOverlayWindows(for items: [DetectedTextItem]) {
+        // Only show overlays if monitoring external apps
+        // (Don't show overlays for our own app's text editor)
+        guard let currentElement = accessibilityMonitor.currentElement else {
+            overlayManager.hideAll()
+            return
+        }
+
+        print("\n🪟 [SpellCheckMonitor] Showing overlay windows for \(items.count) items")
+
+        // Hide previous overlays
+        overlayManager.hideAll()
+
+        // Show overlay for each detected item
+        for item in items {
+            if let bounds = accessibilityMonitor.getBoundsForRange(item.range) {
+                print("   Showing overlay for '\(item.text)' at \(bounds)")
+                overlayManager.showUnderline(for: item, at: bounds, element: currentElement)
+            } else {
+                print("   ⚠️ Could not get bounds for '\(item.text)'")
+            }
+        }
     }
 }
 

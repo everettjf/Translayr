@@ -234,6 +234,42 @@ class AccessibilityMonitor: ObservableObject {
         return nil
     }
 
+    // MARK: - Text Position
+
+    /// Get screen bounds for a text range in the current element
+    func getBoundsForRange(_ range: NSRange) -> NSRect? {
+        guard let element = currentElement else {
+            print("⚠️ [AccessibilityMonitor] No current element")
+            return nil
+        }
+
+        // Create CFRange from NSRange
+        let cfRange = CFRange(location: range.location, length: range.length)
+        var cfRangeValue = cfRange
+        let rangeValue = AXValueCreate(.cfRange, &cfRangeValue)
+
+        // Get bounds for the range
+        var boundsValue: AnyObject?
+        let error = AXUIElementCopyParameterizedAttributeValue(
+            element,
+            kAXBoundsForRangeParameterizedAttribute as CFString,
+            rangeValue!,
+            &boundsValue
+        )
+
+        if error == .success, let value = boundsValue {
+            var rect = CGRect.zero
+            if AXValueGetValue(value as! AXValue, .cgRect, &rect) {
+                print("✅ [AccessibilityMonitor] Got bounds for range \(range): \(rect)")
+                return rect
+            }
+        } else {
+            print("⚠️ [AccessibilityMonitor] Failed to get bounds for range: error \(error.rawValue)")
+        }
+
+        return nil
+    }
+
     // MARK: - Text Replacement
 
     /// 替换当前元素中的文本
