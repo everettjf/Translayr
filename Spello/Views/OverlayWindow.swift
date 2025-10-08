@@ -39,11 +39,20 @@ class OverlayWindow: NSWindow {
 
     /// Update window position and show underline
     func showUnderline(at rect: NSRect, text: String) {
-        // Position window at the text location
-        self.setFrame(rect, display: true)
+        // Create a thin window for just the underline
+        // Position it at the bottom of the text bounds
+        let underlineHeight: CGFloat = 4
+        let underlineRect = NSRect(
+            x: rect.origin.x,
+            y: rect.origin.y, // Already at the correct position for underline
+            width: rect.width,
+            height: underlineHeight
+        )
+
+        self.setFrame(underlineRect, display: true)
 
         // Create underline view
-        let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: rect.width, height: rect.height))
+        let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: underlineRect.width, height: underlineRect.height))
         underlineView.text = text
         self.contentView = underlineView
 
@@ -63,11 +72,14 @@ class UnderlineView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        // Draw red underline at the bottom
+        // Draw red underline
         NSColor.red.setStroke()
         let path = NSBezierPath()
-        path.move(to: NSPoint(x: 0, y: 2))
-        path.line(to: NSPoint(x: bounds.width, y: 2))
+
+        // Center the underline in the small window
+        let underlineY = bounds.height / 2
+        path.move(to: NSPoint(x: 0, y: underlineY))
+        path.line(to: NSPoint(x: bounds.width, y: underlineY))
         path.lineWidth = 2
         path.stroke()
     }
@@ -97,16 +109,31 @@ class OverlayWindowManager {
     func showUnderline(for item: DetectedTextItem, at bounds: NSRect, element: AXUIElement) {
         let key = "\(item.range.location)-\(item.range.length)"
 
-        // Convert accessibility coordinates to screen coordinates
-        // Accessibility uses top-left origin, need to flip Y
-        let screenHeight = NSScreen.main?.frame.height ?? 0
-        let flippedY = screenHeight - bounds.origin.y - bounds.size.height
+        // Accessibility API returns coordinates with origin at top-left of main screen
+        // macOS window coordinates have origin at bottom-left of main screen
+        // So we need to flip the Y coordinate
+        guard let mainScreen = NSScreen.main else {
+            print("⚠️ Cannot get main screen")
+            return
+        }
+
+        let screenHeight = mainScreen.frame.height
+
+        // Convert from Accessibility coordinates (top-left origin) to Cocoa coordinates (bottom-left origin)
+        // AX Y-coordinate increases downward, Cocoa Y-coordinate increases upward
+        let cocoaY = screenHeight - bounds.origin.y - bounds.size.height
+
         let screenBounds = NSRect(
             x: bounds.origin.x,
-            y: flippedY,
+            y: cocoaY,
             width: bounds.size.width,
             height: bounds.size.height
         )
+
+        print("🎯 [OverlayWindowManager] Positioning overlay:")
+        print("   AX bounds: \(bounds)")
+        print("   Screen height: \(screenHeight)")
+        print("   Cocoa bounds: \(screenBounds)")
 
         // Create or update overlay window
         if let window = overlayWindows[key] {
@@ -119,7 +146,7 @@ class OverlayWindowManager {
             if let underlineView = window.contentView as? UnderlineView {
                 underlineView.onClicked = { [weak self] text in
                     Task { @MainActor in
-                        await self?.handleTextClicked(text, item: item)
+                        await self?.handleTextClicked(text, item: item, bounds: screenBounds)
                     }
                 }
             }
@@ -137,20 +164,46 @@ class OverlayWindowManager {
     }
 
     /// Handle clicking on underlined text
-    private func handleTextClicked(_ text: String, item: DetectedTextItem) async {
+    private func handleTextClicked(_ text: String, item: DetectedTextItem, bounds: NSRect) async {
         print("🔄 Getting translations for: \(text)")
 
         // Get translations from SpellCheckMonitor
         let translations = await SpellCheckMonitor.shared.translateItem(item)
 
-        // Show translation popup
-        showTranslationPopup(for: text, translations: translations)
+        // Show translation popup near the clicked text
+        showTranslationPopup(for: text, translations: translations, near: bounds)
     }
 
-    private func showTranslationPopup(for text: String, translations: [String]) {
+    private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect) {
         // Create a small popup window with translations
+        let popupWidth: CGFloat = 350
+        let popupHeight: CGFloat = 250
+
+        // Position popup below the text, or above if there's no room below
+        var popupX = textBounds.origin.x
+        var popupY = textBounds.origin.y - popupHeight - 10 // Below text (remember Y grows upward)
+
+        // If popup would go off bottom of screen, show above text instead
+        if popupY < 50 {
+            popupY = textBounds.origin.y + textBounds.size.height + 10
+        }
+
+        // If popup would go off right edge, align right edge with text
+        if let screen = NSScreen.main {
+            if popupX + popupWidth > screen.frame.maxX {
+                popupX = screen.frame.maxX - popupWidth - 10
+            }
+        }
+
+        // Make sure popup doesn't go off left edge
+        if popupX < 10 {
+            popupX = 10
+        }
+
+        let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
+
         let popupWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
+            contentRect: popupFrame,
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -158,6 +211,7 @@ class OverlayWindowManager {
 
         popupWindow.title = "Translation: \(text)"
         popupWindow.level = .floating
+        popupWindow.isMovableByWindowBackground = true
 
         // Create SwiftUI view for translations
         let translationsView = TranslationPopupView(
@@ -171,8 +225,9 @@ class OverlayWindowManager {
         )
 
         popupWindow.contentView = NSHostingView(rootView: translationsView)
-        popupWindow.center()
         popupWindow.makeKeyAndOrderFront(nil)
+
+        print("🪟 [OverlayWindowManager] Showing popup at \(popupFrame)")
     }
 }
 
@@ -184,40 +239,74 @@ struct TranslationPopupView: View {
     let onSelect: (String) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Select Translation")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Translation")
+                        .font(.headline)
+                    Text(originalText)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor))
 
             Divider()
 
+            // Translations list
             if translations.isEmpty {
-                Text("No translations available")
-                    .foregroundColor(.secondary)
-                    .padding()
+                VStack {
+                    Spacer()
+                    Text("Loading translations...")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(translations, id: \.self) { translation in
+                    VStack(spacing: 0) {
+                        ForEach(Array(translations.enumerated()), id: \.offset) { index, translation in
                             Button(action: {
                                 onSelect(translation)
                             }) {
-                                HStack {
+                                HStack(spacing: 12) {
                                     Text(translation)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.primary)
+                                        .multilineTextAlignment(.leading)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                    Spacer()
-                                    Image(systemName: "arrow.right.circle")
+
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .foregroundColor(.blue)
+                                        .imageScale(.medium)
                                 }
-                                .padding(8)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(6)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
                             }
                             .buttonStyle(.plain)
+                            .contentShape(Rectangle())
+                            .onHover { hovering in
+                                if hovering {
+                                    NSCursor.pointingHand.push()
+                                } else {
+                                    NSCursor.pop()
+                                }
+                            }
+
+                            if index < translations.count - 1 {
+                                Divider()
+                                    .padding(.leading, 12)
+                            }
                         }
                     }
+                    .padding(.vertical, 8)
                 }
             }
         }
-        .padding()
-        .frame(width: 300, height: 200)
+        .frame(width: 350, height: 250)
     }
 }
