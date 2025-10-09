@@ -27,10 +27,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 注册系统服务
         _ = SystemServiceProvider.shared
         print("System services registered")
+
+        // 设置状态栏图标
+        Task { @MainActor in
+            StatusBarController.shared.setupStatusBar()
+            print("Status bar icon created")
+        }
     }
 
-    // 当最后一个窗口关闭时，终止应用
+    // 关闭主窗口时不退出应用（保留在状态栏）
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false  // 改为 false，关闭窗口后应用继续运行
+    }
+
+    // 支持从 Dock 重新激活窗口
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            // 如果没有可见窗口，显示主窗口
+            if let window = NSApp.windows.first {
+                window.makeKeyAndOrderFront(nil)
+            }
+        }
         return true
     }
 }

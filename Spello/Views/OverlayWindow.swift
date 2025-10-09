@@ -212,7 +212,22 @@ class OverlayWindowManager {
 
     private var overlayWindows: [String: OverlayWindow] = [:]
 
+    /// 当前显示的翻译弹窗（强引用，防止被过早释放导致 crash）
+    private var currentTranslationPopup: NSPanel?
+
     private init() {}
+
+    // MARK: - Public Translation Popup（公共翻译弹窗方法）
+
+    /// 在指定位置显示翻译弹窗（可从任何地方调用）
+    /// - Parameters:
+    ///   - text: 原文本
+    ///   - translations: 翻译候选列表
+    ///   - sourceRect: 文本的屏幕位置（Cocoa 坐标系）
+    ///   - onSelect: 选择翻译的回调
+    func showTranslation(for text: String, translations: [String], at sourceRect: NSRect, onSelect: @escaping (String) -> Void) {
+        showTranslationPopup(for: text, translations: translations, near: sourceRect, onSelect: onSelect)
+    }
 
     /// Show underline for a detected text item
     func showUnderline(for item: DetectedTextItem, at bounds: NSRect, element: AXUIElement) {
@@ -278,61 +293,77 @@ class OverlayWindowManager {
         let translations = await SpellCheckMonitor.shared.translateItem(item)
 
         // Show translation popup near the clicked text
-        showTranslationPopup(for: text, translations: translations, near: bounds)
+        showTranslationPopup(for: text, translations: translations, near: bounds, onSelect: nil)
     }
 
-    private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect) {
-        // Create a small popup window with translations
+    private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect, onSelect: ((String) -> Void)? = nil) {
+        // 关闭之前的弹窗（如果有）
+        currentTranslationPopup?.close()
+        currentTranslationPopup = nil
+
+        // 创建翻译弹窗
         let popupWidth: CGFloat = 350
         let popupHeight: CGFloat = 250
 
-        // Position popup below the text, or above if there's no room below
+        // 计算弹窗位置（在文字下方，增加间距使其更靠下）
         var popupX = textBounds.origin.x
-        var popupY = textBounds.origin.y - popupHeight - 10 // Below text (remember Y grows upward)
+        var popupY = textBounds.origin.y - popupHeight - 30 // 增加间距从 10 到 30
 
-        // If popup would go off bottom of screen, show above text instead
+        // 如果弹窗会超出屏幕底部，则显示在文字上方
         if popupY < 50 {
-            popupY = textBounds.origin.y + textBounds.size.height + 10
+            popupY = textBounds.origin.y + textBounds.size.height + 30
         }
 
-        // If popup would go off right edge, align right edge with text
+        // 防止弹窗超出屏幕右边缘
         if let screen = NSScreen.main {
             if popupX + popupWidth > screen.frame.maxX {
                 popupX = screen.frame.maxX - popupWidth - 10
             }
         }
 
-        // Make sure popup doesn't go off left edge
+        // 防止弹窗超出屏幕左边缘
         if popupX < 10 {
             popupX = 10
         }
 
         let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
 
-        let popupWindow = NSWindow(
+        // 使用 NSPanel 而不是 NSWindow，并设置为 HUD 样式
+        // NSPanel 更适合临时弹窗，失去焦点时会自动隐藏
+        let popupPanel = NSPanel(
             contentRect: popupFrame,
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .nonactivatingPanel],  // 去掉 .closable，使用 nonactivatingPanel
             backing: .buffered,
             defer: false
         )
 
-        popupWindow.title = "Translation: \(text)"
-        popupWindow.level = .floating
-        popupWindow.isMovableByWindowBackground = true
+        popupPanel.title = "Translation: \(text)"
+        popupPanel.level = .floating
+        popupPanel.isMovableByWindowBackground = true
+        popupPanel.hidesOnDeactivate = true  // 失去焦点时自动隐藏
 
-        // Create SwiftUI view for translations
+        // 创建 SwiftUI 视图
         let translationsView = TranslationPopupView(
             originalText: text,
             translations: translations,
-            onSelect: { [weak popupWindow] translation in
+            onSelect: { [weak self] translation in
                 print("✅ Selected translation: \(translation)")
-                // TODO: Replace text in the original app
-                popupWindow?.close()
+
+                // 调用外部回调（如果有）
+                onSelect?(translation)
+
+                // 关闭弹窗
+                self?.currentTranslationPopup?.close()
+                self?.currentTranslationPopup = nil
             }
         )
 
-        popupWindow.contentView = NSHostingView(rootView: translationsView)
-        popupWindow.makeKeyAndOrderFront(nil)
+        popupPanel.contentView = NSHostingView(rootView: translationsView)
+
+        // 强引用持有窗口，防止被过早释放
+        currentTranslationPopup = popupPanel
+
+        popupPanel.makeKeyAndOrderFront(nil)
 
         print("🪟 [OverlayWindowManager] Showing popup at \(popupFrame)")
     }
