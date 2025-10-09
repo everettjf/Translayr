@@ -33,28 +33,55 @@ class OverlayWindow: NSWindow {
         // Don't show in window switcher
         self.isMovableByWindowBackground = false
 
-        // Allow mouse events to pass through except on underlines
+        // Allow mouse events on the window
         self.ignoresMouseEvents = false
+
+        // Make sure window can receive mouse events
+        self.acceptsMouseMovedEvents = true
+    }
+
+    // Prevent window from becoming key or main
+    override var canBecomeKey: Bool {
+        return false
+    }
+
+    override var canBecomeMain: Bool {
+        return false
     }
 
     /// Update window position and show underline
-    func showUnderline(at rect: NSRect, text: String) {
-        // Create a thin window for just the underline
-        // Position it at the bottom of the text bounds
-        let underlineHeight: CGFloat = 4
-        let underlineRect = NSRect(
+    func showUnderline(at rect: NSRect, text: String, onClicked: ((String) -> Void)? = nil) {
+        // Make the window cover the entire text area for easier clicking
+        // But draw the underline at the bottom
+        let clickableRect = NSRect(
             x: rect.origin.x,
-            y: rect.origin.y, // Already at the correct position for underline
+            y: rect.origin.y,
             width: rect.width,
-            height: underlineHeight
+            height: rect.height // Use full text height for clickable area
         )
 
-        self.setFrame(underlineRect, display: true)
+        self.setFrame(clickableRect, display: true)
 
-        // Create underline view
-        let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: underlineRect.width, height: underlineRect.height))
-        underlineView.text = text
-        self.contentView = underlineView
+        // Create or update underline view with full text area
+        if let underlineView = self.contentView as? UnderlineView {
+            // Update existing view
+            underlineView.text = text
+            if let onClicked = onClicked {
+                underlineView.onClicked = onClicked
+            }
+            let newSize = NSSize(width: clickableRect.width, height: clickableRect.height)
+            if underlineView.frame.size != newSize {
+                underlineView.setFrameSize(newSize)
+                underlineView.updateTrackingAreas()
+            }
+            underlineView.needsDisplay = true
+        } else {
+            // Create new view
+            let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: clickableRect.width, height: clickableRect.height))
+            underlineView.text = text
+            underlineView.onClicked = onClicked
+            self.contentView = underlineView
+        }
 
         self.orderFrontRegardless()
     }
@@ -68,31 +95,97 @@ class OverlayWindow: NSWindow {
 class UnderlineView: NSView {
     var text: String = ""
     var onClicked: ((String) -> Void)?
+    private var isHovering = false
+    private var trackingArea: NSTrackingArea?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setupTrackingArea()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupTrackingArea()
+    }
+
+    private func setupTrackingArea() {
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways]
+        trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
+        if let trackingArea = trackingArea {
+            addTrackingArea(trackingArea)
+        }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea = trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        setupTrackingArea()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window != nil {
+            print("🖱️ [UnderlineView] View added to window, text: \(text), callback set: \(onClicked != nil)")
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        // Draw red underline
+        // Draw semi-transparent highlight when hovering
+        if isHovering {
+            NSColor.systemBlue.withAlphaComponent(0.1).setFill()
+            bounds.fill()
+        }
+
+        // Draw red underline at the bottom of the text area
         NSColor.red.setStroke()
         let path = NSBezierPath()
 
-        // Center the underline in the small window
-        let underlineY = bounds.height / 2
+        // Position underline at the very bottom (2 pixels from bottom)
+        let underlineY: CGFloat = 2
         path.move(to: NSPoint(x: 0, y: underlineY))
         path.line(to: NSPoint(x: bounds.width, y: underlineY))
         path.lineWidth = 2
         path.stroke()
     }
 
+    override func mouseEntered(with event: NSEvent) {
+        print("🖱️ [UnderlineView] Mouse entered: \(text)")
+        isHovering = true
+        NSCursor.pointingHand.push()
+        needsDisplay = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        print("🖱️ [UnderlineView] Mouse exited: \(text)")
+        isHovering = false
+        NSCursor.pop()
+        needsDisplay = true
+    }
+
     override func mouseDown(with event: NSEvent) {
         // Handle click - show translation popup
-        print("🖱️ Clicked on underlined text: \(text)")
-        onClicked?(text)
+        print("🖱️ [UnderlineView] Mouse down on: \(text)")
+        if let callback = onClicked {
+            print("🖱️ [UnderlineView] Calling onClicked callback")
+            callback(text)
+        } else {
+            print("⚠️ [UnderlineView] No onClicked callback set!")
+        }
     }
 
     // Accept first mouse to allow clicking without activating window
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
+    }
+
+    // Make the entire view respond to mouse events
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Return self if point is within bounds, enabling clicks anywhere in the overlay
+        return bounds.contains(point) ? self : nil
     }
 }
 
@@ -135,22 +228,20 @@ class OverlayWindowManager {
         print("   Screen height: \(screenHeight)")
         print("   Cocoa bounds: \(screenBounds)")
 
+        // Define click handler
+        let clickHandler: (String) -> Void = { [weak self] text in
+            print("🖱️ [OverlayWindowManager] Click handler triggered for: \(text)")
+            Task { @MainActor in
+                await self?.handleTextClicked(text, item: item, bounds: screenBounds)
+            }
+        }
+
         // Create or update overlay window
         if let window = overlayWindows[key] {
-            window.showUnderline(at: screenBounds, text: item.text)
+            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
         } else {
             let window = OverlayWindow(frame: screenBounds)
-            window.showUnderline(at: screenBounds, text: item.text)
-
-            // Set click handler
-            if let underlineView = window.contentView as? UnderlineView {
-                underlineView.onClicked = { [weak self] text in
-                    Task { @MainActor in
-                        await self?.handleTextClicked(text, item: item, bounds: screenBounds)
-                    }
-                }
-            }
-
+            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
             overlayWindows[key] = window
         }
     }
