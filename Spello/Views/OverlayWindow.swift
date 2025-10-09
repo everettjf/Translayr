@@ -293,7 +293,23 @@ class OverlayWindowManager {
         let translations = await SpellCheckMonitor.shared.translateItem(item)
 
         // Show translation popup near the clicked text
-        showTranslationPopup(for: text, translations: translations, near: bounds, onSelect: nil)
+        showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
+            // 在外部应用中替换文本
+            self?.replaceTextInExternalApp(item: item, with: translation)
+        }
+    }
+
+    /// 在外部应用中替换文本
+    private func replaceTextInExternalApp(item: DetectedTextItem, with translation: String) {
+        print("🔄 Replacing '\(item.text)' with '\(translation)' in external app")
+
+        // 使用 AccessibilityMonitor 替换文本
+        AccessibilityMonitor.shared.replaceText(in: item.range, with: translation)
+
+        // 隐藏所有 overlay（文本已改变，旧的下划线位置不再有效）
+        hideAll()
+
+        // AccessibilityMonitor 的定时器会自动检测到新文本并重新显示下划线
     }
 
     private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect, onSelect: ((String) -> Void)? = nil) {
