@@ -2,72 +2,96 @@
 //  SpellCheckMonitor.swift
 //  Spello
 //
-//  Minimal spell check monitor using NSSpellChecker.substitutionPanel
+//  拼写检查监控器 - 协调 AccessibilityMonitor 和 OverlayWindow 的工作
 //
 
 import SwiftUI
 import Combine
 
+/// 拼写检查监控器 - 核心协调类
+/// 负责：
+/// 1. 监听 AccessibilityMonitor 获取的文本
+/// 2. 检测中文文本（句子和词组）
+/// 3. 显示和更新 overlay 下划线
+/// 4. 处理翻译请求
 @MainActor
 class SpellCheckMonitor: ObservableObject {
     static let shared = SpellCheckMonitor()
 
+    /// 检测到的中文文本项列表
     @Published var detectedItems: [DetectedTextItem] = []
 
+    // MARK: - Dependencies（依赖）
+
+    /// 辅助功能监控器 - 获取其他应用的文本
     private let accessibilityMonitor = AccessibilityMonitor.shared
+
+    /// 拼写服务 - 提供翻译功能
     private let spellService = SpellService()
+
+    /// Overlay 窗口管理器 - 管理下划线显示
     private let overlayManager = OverlayWindowManager.shared
+
+    /// Combine 订阅集合
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
-        // Monitor text changes - only detect Chinese text
+        // 监听文本变化 - 检测中文文本
         accessibilityMonitor.$currentText
-            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)  // 防抖，避免频繁更新
             .sink { [weak self] text in
                 self?.detectChineseText(text)
             }
             .store(in: &cancellables)
 
-        // Monitor window position changes - update overlay positions
+        // 监听窗口位置变化 - 更新 overlay 位置
         accessibilityMonitor.$windowPositionChanged
-            .dropFirst() // Skip initial value
-            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
+            .dropFirst()  // 跳过初始值
+            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)  // 短防抖，快速响应位置变化
             .sink { [weak self] _ in
                 self?.updateOverlayPositions()
             }
             .store(in: &cancellables)
     }
 
-    // MARK: - Public Methods
+    // MARK: - Public Methods（公共方法）
 
+    /// 开始监控系统范围的文本输入
     func startMonitoring() {
         print("\n🚀 [SpellCheckMonitor] Starting spell check monitoring")
         accessibilityMonitor.startMonitoring()
         print("✅ [SpellCheckMonitor] AccessibilityMonitor started")
     }
 
+    /// 停止监控
     func stopMonitoring() {
         print("⏹ [SpellCheckMonitor] Stopping spell check monitoring")
         accessibilityMonitor.stopMonitoring()
     }
 
-    /// Translate a specific detected item when clicked
+    /// 翻译指定的检测项（当用户点击下划线时调用）
+    /// - Parameter item: 要翻译的文本项
+    /// - Returns: 翻译候选列表
     func translateItem(_ item: DetectedTextItem) async -> [String] {
         print("🔄 Translating: \(item.text)")
 
-        // Get AI translation suggestions
+        // 使用 AI 获取翻译建议
         let aiSuggestions = await spellService.analyzeWithLocalModelAsync(text: item.text, language: nil)
 
-        // Extract translation candidates
+        // 提取翻译候选
         let translations = aiSuggestions.flatMap { $0.candidates }
         print("✅ Got \(translations.count) translations")
 
         return translations
     }
 
-    // MARK: - Private Methods
+    // MARK: - Private Methods（私有方法）
 
-    /// Detect Chinese text (sentences first, then words)
+    /// 检测文本中的中文内容
+    /// 策略：
+    /// 1. 优先检测中文句子（以标点符号分隔）
+    /// 2. 然后检测独立的中文词组（2个字以上）
+    /// - Parameter text: 要检测的文本
     private func detectChineseText(_ text: String) {
         guard !text.isEmpty else {
             if !detectedItems.isEmpty {
@@ -158,9 +182,10 @@ class SpellCheckMonitor: ObservableObject {
         }
     }
 
-    /// Update overlay positions when window moves/resizes
+    /// 更新 overlay 位置（当窗口移动或调整大小时）
+    /// 重新获取所有检测项的屏幕位置并更新 overlay
     private func updateOverlayPositions() {
-        // Only update if we have detected items and current element
+        // 只在有检测项且有当前元素时更新
         guard !detectedItems.isEmpty,
               let currentElement = accessibilityMonitor.currentElement else {
             return
@@ -168,7 +193,7 @@ class SpellCheckMonitor: ObservableObject {
 
         print("\n📍 [SpellCheckMonitor] Updating overlay positions for \(detectedItems.count) items")
 
-        // Update position for each overlay
+        // 为每个 overlay 更新位置
         for item in detectedItems {
             if let bounds = accessibilityMonitor.getBoundsForRange(item.range) {
                 overlayManager.showUnderline(for: item, at: bounds, element: currentElement)
@@ -177,17 +202,21 @@ class SpellCheckMonitor: ObservableObject {
     }
 }
 
-// MARK: - Supporting Models
+// MARK: - Supporting Models（支持模型）
 
-/// Model for detected text items that need translation
+/// 检测到的文本项模型 - 表示需要翻译的中文文本
 struct DetectedTextItem: Identifiable {
     let id = UUID()
+    /// 检测到的文本内容
     let text: String
+    /// 文本在原文中的范围
     let range: NSRange
+    /// 检测类型（句子或词组）
     let type: DetectionType
 
+    /// 检测类型枚举
     enum DetectionType {
-        case sentence
-        case word
+        case sentence  // 句子（包含标点符号）
+        case word      // 词组（2个字以上）
     }
 }

@@ -9,20 +9,42 @@ import Cocoa
 import ApplicationServices
 import Combine
 
+/// 辅助功能监控器 - 负责监控其他应用程序的文本输入
+/// 使用 macOS Accessibility API 获取其他应用中的文本内容和位置信息
 @MainActor
 class AccessibilityMonitor: ObservableObject {
     static let shared = AccessibilityMonitor()
 
-    @Published var currentText: String = ""
-    @Published var currentElement: AXUIElement?
-    @Published var isMonitoring = false
-    @Published var windowPositionChanged: Bool = false // Trigger for position updates
+    // MARK: - Published Properties（发布的属性，变化时会通知观察者）
 
+    /// 当前监控的文本内容
+    @Published var currentText: String = ""
+
+    /// 当前聚焦的 UI 元素
+    @Published var currentElement: AXUIElement?
+
+    /// 是否正在监控
+    @Published var isMonitoring = false
+
+    /// 窗口位置是否发生变化（用于触发 overlay 位置更新）
+    @Published var windowPositionChanged: Bool = false
+
+    // MARK: - Private Properties（私有属性）
+
+    /// 当前聚焦的元素引用
     private var focusedElement: AXUIElement?
+
+    /// 定时器 - 用于定期检查文本内容
     private var checkTimer: Timer?
+
+    /// 窗口观察者 - 用于监听窗口移动/调整大小事件
     private var windowObserver: AXObserver?
+
+    /// 当前监控的窗口
     private var currentWindow: AXUIElement?
-    private var positionUpdateTimer: Timer? // Timer to periodically check position
+
+    /// 位置更新定时器 - 定期检查窗口位置（作为通知的备用方案）
+    private var positionUpdateTimer: Timer?
 
     private init() {}
 
@@ -255,9 +277,11 @@ class AccessibilityMonitor: ObservableObject {
         return nil
     }
 
-    // MARK: - Text Position
+    // MARK: - Text Position（文本位置）
 
-    /// Get screen bounds for a text range in the current element
+    /// 获取指定文本范围在屏幕上的边界矩形
+    /// - Parameter range: 文本范围
+    /// - Returns: 屏幕坐标系中的矩形，如果无法获取则返回 nil
     func getBoundsForRange(_ range: NSRange) -> NSRect? {
         guard let element = currentElement else {
             print("⚠️ [AccessibilityMonitor] No current element")
@@ -312,16 +336,19 @@ class AccessibilityMonitor: ObservableObject {
         }
     }
 
-    // MARK: - Window Position Tracking
+    // MARK: - Window Position Tracking（窗口位置追踪）
 
-    /// Update the current window being tracked for position changes
+    /// 更新当前追踪的窗口，用于监听位置变化
+    /// - Parameters:
+    ///   - element: UI 元素
+    ///   - pid: 应用程序的进程 ID
     private func updateCurrentWindow(for element: AXUIElement, pid: pid_t) {
-        // Try to get the window that contains this element
+        // 尝试获取包含此元素的窗口
         var windowValue: AnyObject?
         let error = AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &windowValue)
 
         if error == .success, let window = windowValue as! AXUIElement? {
-            // Only update if it's a different window
+            // 只在窗口改变时更新
             if currentWindow == nil || !CFEqual(currentWindow, window) {
                 print("🪟 [AccessibilityMonitor] Updating tracked window")
                 currentWindow = window
@@ -332,7 +359,10 @@ class AccessibilityMonitor: ObservableObject {
         }
     }
 
-    /// Setup notifications for window position/size changes
+    /// 设置窗口位置/大小变化的通知监听
+    /// - Parameters:
+    ///   - window: 要监听的窗口
+    ///   - pid: 应用程序的进程 ID
     private func setupWindowNotifications(for window: AXUIElement, pid: pid_t) {
         // Remove old observer if exists
         windowObserver = nil
@@ -359,28 +389,29 @@ class AccessibilityMonitor: ObservableObject {
         }
     }
 
-    /// Handle window position/size change notifications
+    /// 处理窗口位置/大小变化的通知
+    /// - Parameter notification: 通知类型（移动或调整大小）
     private func handleWindowNotification(notification: CFString) {
         let notificationName = notification as String
         print("🪟 [AccessibilityMonitor] Window notification: \(notificationName)")
 
-        // Toggle the windowPositionChanged to trigger overlay updates
+        // 切换 windowPositionChanged 的值以触发 overlay 位置更新
         windowPositionChanged.toggle()
     }
 
-    /// Periodically check window position (backup method if notifications don't work)
+    /// 定期检查窗口位置（作为通知机制的备用方案）
+    /// 某些应用可能不触发窗口通知，定时检查可以确保位置更新
     private func checkWindowPosition() {
         guard let window = currentWindow, currentElement != nil else {
             return
         }
 
-        // Get current window position
+        // 获取当前窗口位置
         var positionValue: AnyObject?
         let error = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
 
         if error == .success {
-            // We don't need to compare position here, just trigger an update periodically
-            // The SpellCheckMonitor will decide if overlay needs updating
+            // 定期触发更新，由 SpellCheckMonitor 决定是否需要更新 overlay
             windowPositionChanged.toggle()
         }
     }

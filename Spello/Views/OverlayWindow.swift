@@ -2,15 +2,22 @@
 //  OverlayWindow.swift
 //  Spello
 //
-//  Transparent overlay window for displaying underlines over other apps
+//  透明覆盖窗口 - 在其他应用上方显示下划线
 //
 
 import Cocoa
 import SwiftUI
 
-/// Transparent window that floats above all other apps to show underlines
+/// 透明浮动窗口 - 用于在其他应用上方显示中文文本的下划线
+/// 特点：
+/// 1. 完全透明，只显示下划线
+/// 2. 浮动在所有窗口之上（.floating level）
+/// 3. 可以响应鼠标点击但不会抢夺焦点
+/// 4. 窗口大小覆盖整个文字区域，便于点击
 class OverlayWindow: NSWindow {
 
+    /// 初始化 overlay 窗口
+    /// - Parameter frame: 窗口的初始位置和大小
     init(frame: NSRect) {
         super.init(
             contentRect: frame,
@@ -91,11 +98,20 @@ class OverlayWindow: NSWindow {
     }
 }
 
-/// Custom view that draws red underline and handles clicks
+/// 下划线视图 - 绘制红色下划线并处理用户交互
+/// 功能：
+/// 1. 在底部绘制红色下划线
+/// 2. 鼠标悬停时显示蓝色高亮背景
+/// 3. 鼠标悬停时显示手形指针
+/// 4. 响应点击事件以显示翻译弹窗
 class UnderlineView: NSView {
+    /// 下划线对应的文本内容
     var text: String = ""
+    /// 点击回调函数
     var onClicked: ((String) -> Void)?
+    /// 是否鼠标悬停中
     private var isHovering = false
+    /// 鼠标追踪区域
     private var trackingArea: NSTrackingArea?
 
     override init(frame frameRect: NSRect) {
