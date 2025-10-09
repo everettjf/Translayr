@@ -27,6 +27,15 @@ class SpellCheckMonitor: ObservableObject {
                 self?.detectChineseText(text)
             }
             .store(in: &cancellables)
+
+        // Monitor window position changes - update overlay positions
+        accessibilityMonitor.$windowPositionChanged
+            .dropFirst() // Skip initial value
+            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateOverlayPositions()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public Methods
@@ -145,6 +154,24 @@ class SpellCheckMonitor: ObservableObject {
                 overlayManager.showUnderline(for: item, at: bounds, element: currentElement)
             } else {
                 print("   ⚠️ Could not get bounds for '\(item.text)'")
+            }
+        }
+    }
+
+    /// Update overlay positions when window moves/resizes
+    private func updateOverlayPositions() {
+        // Only update if we have detected items and current element
+        guard !detectedItems.isEmpty,
+              let currentElement = accessibilityMonitor.currentElement else {
+            return
+        }
+
+        print("\n📍 [SpellCheckMonitor] Updating overlay positions for \(detectedItems.count) items")
+
+        // Update position for each overlay
+        for item in detectedItems {
+            if let bounds = accessibilityMonitor.getBoundsForRange(item.range) {
+                overlayManager.showUnderline(for: item, at: bounds, element: currentElement)
             }
         }
     }

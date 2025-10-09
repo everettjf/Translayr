@@ -16,9 +16,13 @@ class AccessibilityMonitor: ObservableObject {
     @Published var currentText: String = ""
     @Published var currentElement: AXUIElement?
     @Published var isMonitoring = false
+    @Published var windowPositionChanged: Bool = false // Trigger for position updates
 
     private var focusedElement: AXUIElement?
     private var checkTimer: Timer?
+    private var windowObserver: AXObserver?
+    private var currentWindow: AXUIElement?
+    private var positionUpdateTimer: Timer? // Timer to periodically check position
 
     private init() {}
 
@@ -62,7 +66,14 @@ class AccessibilityMonitor: ObservableObject {
             }
         }
 
-        print("✅ [AccessibilityMonitor] Timer started")
+        // 定时检查窗口位置变化（用于更新 overlay 位置）
+        positionUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.checkWindowPosition()
+            }
+        }
+
+        print("✅ [AccessibilityMonitor] Timers started")
     }
 
     /// 停止监控
@@ -71,7 +82,11 @@ class AccessibilityMonitor: ObservableObject {
         isMonitoring = false
         checkTimer?.invalidate()
         checkTimer = nil
+        positionUpdateTimer?.invalidate()
+        positionUpdateTimer = nil
         focusedElement = nil
+        currentWindow = nil
+        windowObserver = nil
     }
 
     // MARK: - Private Methods
@@ -158,6 +173,9 @@ class AccessibilityMonitor: ObservableObject {
                     print("   Preview: \(String(text.prefix(100)))")
                     currentText = text
                     currentElement = axElement
+
+                    // Update current window for position tracking
+                    updateCurrentWindow(for: axElement, pid: pid)
                 }
                 return
             }
@@ -184,6 +202,9 @@ class AccessibilityMonitor: ObservableObject {
                         print("✅ [AccessibilityMonitor] Got text from window's focused element")
                         currentText = text
                         currentElement = axElement
+
+                        // Update current window for position tracking
+                        updateCurrentWindow(for: axElement, pid: pid)
                     }
                     return
                 }
@@ -288,6 +309,79 @@ class AccessibilityMonitor: ObservableObject {
             print("✅ Text replaced successfully")
         } else {
             print("❌ Failed to replace text: \(error.rawValue)")
+        }
+    }
+
+    // MARK: - Window Position Tracking
+
+    /// Update the current window being tracked for position changes
+    private func updateCurrentWindow(for element: AXUIElement, pid: pid_t) {
+        // Try to get the window that contains this element
+        var windowValue: AnyObject?
+        let error = AXUIElementCopyAttributeValue(element, kAXWindowAttribute as CFString, &windowValue)
+
+        if error == .success, let window = windowValue as! AXUIElement? {
+            // Only update if it's a different window
+            if currentWindow == nil || !CFEqual(currentWindow, window) {
+                print("🪟 [AccessibilityMonitor] Updating tracked window")
+                currentWindow = window
+                setupWindowNotifications(for: window, pid: pid)
+            }
+        } else {
+            print("⚠️ [AccessibilityMonitor] Could not get window from element")
+        }
+    }
+
+    /// Setup notifications for window position/size changes
+    private func setupWindowNotifications(for window: AXUIElement, pid: pid_t) {
+        // Remove old observer if exists
+        windowObserver = nil
+
+        // Create new observer for this app
+        var observer: AXObserver?
+        let error = AXObserverCreate(pid, { (observer, element, notification, refcon) in
+            Task { @MainActor in
+                AccessibilityMonitor.shared.handleWindowNotification(notification: notification)
+            }
+        }, &observer)
+
+        if error == .success, let observer = observer {
+            // Register for window moved and resized notifications
+            AXObserverAddNotification(observer, window, kAXMovedNotification as CFString, nil)
+            AXObserverAddNotification(observer, window, kAXResizedNotification as CFString, nil)
+
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+
+            windowObserver = observer
+            print("✅ [AccessibilityMonitor] Window notifications registered")
+        } else {
+            print("⚠️ [AccessibilityMonitor] Failed to create window observer: \(error.rawValue)")
+        }
+    }
+
+    /// Handle window position/size change notifications
+    private func handleWindowNotification(notification: CFString) {
+        let notificationName = notification as String
+        print("🪟 [AccessibilityMonitor] Window notification: \(notificationName)")
+
+        // Toggle the windowPositionChanged to trigger overlay updates
+        windowPositionChanged.toggle()
+    }
+
+    /// Periodically check window position (backup method if notifications don't work)
+    private func checkWindowPosition() {
+        guard let window = currentWindow, currentElement != nil else {
+            return
+        }
+
+        // Get current window position
+        var positionValue: AnyObject?
+        let error = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
+
+        if error == .success {
+            // We don't need to compare position here, just trigger an update periodically
+            // The SpellCheckMonitor will decide if overlay needs updating
+            windowPositionChanged.toggle()
         }
     }
 }
