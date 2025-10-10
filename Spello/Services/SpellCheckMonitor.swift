@@ -11,14 +11,14 @@ import Combine
 /// 拼写检查监控器 - 核心协调类
 /// 负责：
 /// 1. 监听 AccessibilityMonitor 获取的文本
-/// 2. 检测中文文本（句子和词组）
+/// 2. 检测配置语言的文本（句子和词组）
 /// 3. 显示和更新 overlay 下划线
 /// 4. 处理翻译请求
 @MainActor
 class SpellCheckMonitor: ObservableObject {
     static let shared = SpellCheckMonitor()
 
-    /// 检测到的中文文本项列表
+    /// 检测到的文本项列表
     @Published var detectedItems: [DetectedTextItem] = []
 
     // MARK: - Dependencies（依赖）
@@ -36,11 +36,11 @@ class SpellCheckMonitor: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
-        // 监听文本变化 - 检测中文文本
+        // 监听文本变化 - 检测配置语言的文本
         accessibilityMonitor.$currentText
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)  // 防抖，避免频繁更新
             .sink { [weak self] text in
-                self?.detectChineseText(text)
+                self?.detectText(text)
             }
             .store(in: &cancellables)
 
@@ -89,12 +89,12 @@ class SpellCheckMonitor: ObservableObject {
 
     // MARK: - Private Methods（私有方法）
 
-    /// 检测文本中的中文内容
+    /// 检测文本中的目标语言内容
     /// 策略：
-    /// 1. 优先检测中文句子（以标点符号分隔）
-    /// 2. 然后检测独立的中文词组（2个字以上）
+    /// 1. 优先检测语言句子（以标点符号分隔）
+    /// 2. 然后检测独立的语言词组（根据语言配置的最小长度）
     /// - Parameter text: 要检测的文本
-    private func detectChineseText(_ text: String) {
+    private func detectText(_ text: String) {
         guard !text.isEmpty else {
             if !detectedItems.isEmpty {
                 print("🔍 [SpellCheckMonitor] Text empty, clearing items")
@@ -104,14 +104,15 @@ class SpellCheckMonitor: ObservableObject {
             return
         }
 
-        print("\n🔍 [SpellCheckMonitor] Detecting Chinese in text (\(text.count) chars)")
+        let language = LanguageConfig.detectionLanguage
+        print("\n🔍 [SpellCheckMonitor] Detecting \(language.displayName) in text (\(text.count) chars)")
         print("   First 100 chars: \(String(text.prefix(100)))")
 
         var items: [DetectedTextItem] = []
 
         // Priority 1: Detect sentences (split by specific punctuation, excluding parentheses)
         // 仅使用空格、逗号、句号等作为分隔符，不包括括号
-        let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;\\s\\n]*[。！？；，、.!?,;\\s]"
+        let sentencePattern = "[\(language.unicodePattern)][^。！？；，、.!?,;\\s\\n]*[。！？；，、.!?,;\\s]"
         if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
             let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
             print("   Found \(matches.count) sentence matches")
@@ -129,9 +130,9 @@ class SpellCheckMonitor: ObservableObject {
             }
         }
 
-        // Priority 2: Detect individual Chinese words (2+ characters) not in sentences
+        // Priority 2: Detect individual words (based on language min length) not in sentences
         let coveredRanges = items.map { $0.range }
-        let wordPattern = "[\\p{Han}]{2,}"
+        let wordPattern = "[\(language.unicodePattern)]{\(language.minWordLength),}"
         if let wordRegex = try? NSRegularExpression(pattern: wordPattern, options: []) {
             let matches = wordRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
             print("   Found \(matches.count) word matches (before filtering)")
@@ -160,7 +161,7 @@ class SpellCheckMonitor: ObservableObject {
         showOverlayWindows(for: items)
     }
 
-    /// Show overlay windows for detected Chinese text in external apps
+    /// Show overlay windows for detected text in external apps
     private func showOverlayWindows(for items: [DetectedTextItem]) {
         // Only show overlays if monitoring external apps
         // (Don't show overlays for our own app's text editor)

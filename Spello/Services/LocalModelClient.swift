@@ -10,7 +10,7 @@ import Ollama
 
 protocol LocalModelClientProtocol {
     func analyzeText(_ text: String, language: String?) async throws -> [LocalModelSuggestion]
-    func translateChineseToEnglish(_ text: String) async throws -> String
+    func translateText(_ text: String) async throws -> String
 }
 
 struct LocalModelSuggestion {
@@ -35,46 +35,49 @@ class LocalModelClient: LocalModelClientProtocol {
     }
 
     func analyzeText(_ text: String, language: String? = nil) async throws -> [LocalModelSuggestion] {
+        let detectionLanguage = LanguageConfig.detectionLanguage
         print("LocalModelClient: analyzeText called")
-        print("Text contains Chinese: \(containsChinese(text))")
+        print("Text contains \(detectionLanguage.displayName): \(containsTargetLanguage(text))")
 
-        // 检测文本是否包含中文
-        if containsChinese(text) {
-            return try await analyzeChineseText(text)
+        // 检测文本是否包含目标语言
+        if containsTargetLanguage(text) {
+            return try await analyzeTargetLanguageText(text)
         }
 
-        print("No Chinese detected, returning empty suggestions")
-        // 对于非中文文本，使用基本的拼写检查
+        print("No \(detectionLanguage.displayName) detected, returning empty suggestions")
+        // 对于非目标语言文本，返回空数组
         return []
     }
 
-    private func containsChinese(_ text: String) -> Bool {
-        let chineseRange = text.range(of: "\\p{Han}", options: .regularExpression)
-        return chineseRange != nil
+    private func containsTargetLanguage(_ text: String) -> Bool {
+        let language = LanguageConfig.detectionLanguage
+        let languageRange = text.range(of: language.unicodePattern, options: .regularExpression)
+        return languageRange != nil
     }
 
-    private func analyzeChineseText(_ text: String) async throws -> [LocalModelSuggestion] {
+    private func analyzeTargetLanguageText(_ text: String) async throws -> [LocalModelSuggestion] {
+        let language = LanguageConfig.detectionLanguage
         var suggestions: [LocalModelSuggestion] = []
 
-        print("=== Analyzing Chinese text ===")
+        print("=== Analyzing \(language.displayName) text ===")
         print("Text: \(text)")
 
         // 分词：将文本分成词或短语
-        let words = segmentChineseText(text)
+        let words = segmentText(text)
         print("Segmented into \(words.count) words")
 
         for word in words {
             // 跳过纯英文或数字
-            if !containsChinese(word.text) {
-                print("Skipping non-Chinese word: '\(word.text)'")
+            if !containsTargetLanguage(word.text) {
+                print("Skipping non-\(language.displayName) word: '\(word.text)'")
                 continue
             }
 
             print("Translating: '\(word.text)'")
 
-            // 翻译中文词到英文
+            // 翻译目标语言到英文
             do {
-                let translation = try await translateChineseToEnglish(word.text)
+                let translation = try await translateText(word.text)
                 print("Translation result: '\(word.text)' -> '\(translation)'")
 
                 if !translation.isEmpty {
@@ -96,13 +99,9 @@ class LocalModelClient: LocalModelClientProtocol {
         return suggestions
     }
 
-    func translateChineseToEnglish(_ text: String) async throws -> String {
-        let prompt = """
-        Translate the following Chinese text to English. Only provide the translation, no explanation or additional text.
-
-        Chinese: \(text)
-        English:
-        """
+    func translateText(_ text: String) async throws -> String {
+        let language = LanguageConfig.detectionLanguage
+        let prompt = language.translationPrompt(for: text)
 
         do {
             guard let modelID = Model.ID(rawValue: modelName) else {
@@ -160,26 +159,26 @@ class LocalModelClient: LocalModelClientProtocol {
         }
     }
 
-    private func segmentChineseText(_ text: String) -> [(text: String, range: NSRange)] {
+    private func segmentText(_ text: String) -> [(text: String, range: NSRange)] {
+        let language = LanguageConfig.detectionLanguage
         let nsText = text as NSString
         var segments: [(text: String, range: NSRange)] = []
 
-        // 改进的中文分词：提取连续的中文字符组成的词组
-        // 使用更智能的分词策略：2-4个字的中文词组
-        let pattern = "[\\p{Han}]{2,}"  // 至少2个汉字组成一个词
+        // 提取连续的目标语言字符组成的词组
+        let pattern = "[\(language.unicodePattern)]{\(language.minWordLength),}"
 
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
-            print("Failed to create regex for Chinese segmentation")
+            print("Failed to create regex for \(language.displayName) segmentation")
             return segments
         }
 
         let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: nsText.length))
 
-        print("Found \(matches.count) Chinese segments in text")
+        print("Found \(matches.count) \(language.displayName) segments in text")
 
         for match in matches {
             let matchText = nsText.substring(with: match.range)
-            print("Chinese segment: '\(matchText)' at range \(match.range.location)-\(match.range.location + match.range.length)")
+            print("\(language.displayName) segment: '\(matchText)' at range \(match.range.location)-\(match.range.location + match.range.length)")
             segments.append((text: matchText, range: match.range))
         }
 

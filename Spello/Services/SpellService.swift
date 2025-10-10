@@ -106,7 +106,7 @@ class SpellService: ObservableObject, SpellAnalyzing {
         }
 
         let localModelClient = LocalModelClient()
-        return try await localModelClient.translateChineseToEnglish(text)
+        return try await localModelClient.translateText(text)
     }
 
     func merge(_ systemSuggestions: [Suggestion], _ modelSuggestions: [Suggestion]) -> [Suggestion] {

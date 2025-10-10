@@ -20,7 +20,7 @@ class SystemServiceProvider: NSObject {
 
     // MARK: - Service Methods
 
-    /// 翻译选中的文本（中文到英文）
+    /// 翻译选中的文本（配置的语言到英文）
     /// 这个方法会在用户从系统服务菜单选择 "Translate to English" 时被调用
     @objc func translateToEnglish(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString>) {
         print("=== System Service: translateToEnglish called ===")
@@ -47,7 +47,7 @@ class SystemServiceProvider: NSObject {
         }
     }
 
-    /// 获取中文词组的翻译建议
+    /// 获取配置语言词组的翻译建议
     @objc func getTranslationSuggestions(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString>) {
         print("=== System Service: getTranslationSuggestions called ===")
 
@@ -74,17 +74,18 @@ class SystemServiceProvider: NSObject {
     // MARK: - Helper Methods
 
     private func translateText(_ text: String) async -> String {
+        let language = LanguageConfig.detectionLanguage
         print("Translating text: \(text)")
 
-        // 检测是否包含中文
-        guard containsChinese(text) else {
-            print("No Chinese detected, returning original text")
+        // 检测是否包含目标语言
+        guard containsTargetLanguage(text) else {
+            print("No \(language.displayName) detected, returning original text")
             return text
         }
 
         do {
             // 直接翻译整个文本
-            let translation = try await localModelClient.translateChineseToEnglish(text)
+            let translation = try await localModelClient.translateText(text)
             return translation
         } catch {
             print("Translation error: \(error)")
@@ -93,9 +94,10 @@ class SystemServiceProvider: NSObject {
     }
 
     private func getTranslations(_ text: String) async -> [String] {
+        let language = LanguageConfig.detectionLanguage
         print("Getting translations for: \(text)")
 
-        guard containsChinese(text) else {
+        guard containsTargetLanguage(text) else {
             return [text]
         }
 
@@ -108,8 +110,9 @@ class SystemServiceProvider: NSObject {
         }
     }
 
-    private func containsChinese(_ text: String) -> Bool {
-        let chineseRange = text.range(of: "\\p{Han}", options: .regularExpression)
-        return chineseRange != nil
+    private func containsTargetLanguage(_ text: String) -> Bool {
+        let language = LanguageConfig.detectionLanguage
+        let languageRange = text.range(of: language.unicodePattern, options: .regularExpression)
+        return languageRange != nil
     }
 }

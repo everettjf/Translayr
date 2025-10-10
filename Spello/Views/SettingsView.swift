@@ -12,6 +12,7 @@ import Ollama
 
 enum PreferencesSection: String, CaseIterable, Identifiable {
     case general = "General"
+    case language = "Language"
     case models = "Models"
     case skipApps = "Skip Apps"
     case about = "About"
@@ -21,6 +22,7 @@ enum PreferencesSection: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .general: return "gearshape"
+        case .language: return "globe"
         case .models: return "cpu"
         case .skipApps: return "eraser"
         case .about: return "info.circle"
@@ -48,6 +50,8 @@ struct SettingsView: View {
             switch selection {
             case .general:
                 GeneralSettingsView()
+            case .language:
+                LanguageSettingsView()
             case .models:
                 ModelsSettingsView()
             case .skipApps:
@@ -200,6 +204,103 @@ struct GeneralSettingsView: View {
             accessibilityMonitor.startMonitoring()
             spellCheckMonitor.startMonitoring()
         }
+    }
+}
+
+// MARK: - Language Settings
+
+struct LanguageSettingsView: View {
+    @State private var selectedLanguage = LanguageConfig.detectionLanguage
+
+    var body: some View {
+        Form {
+            Section {
+                Text("Select which language Spello should detect and translate")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("Detection Language") {
+                Picker("Language to detect", selection: $selectedLanguage) {
+                    ForEach(DetectionLanguage.allCases) { language in
+                        HStack {
+                            Text(language.displayName)
+                            Spacer()
+                        }
+                        .tag(language)
+                    }
+                }
+                .pickerStyle(.radioGroup)
+                .labelsHidden()
+                .onChange(of: selectedLanguage) { newLanguage in
+                    LanguageConfig.detectionLanguage = newLanguage
+                }
+            }
+
+            Section("How It Works") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "1.circle.fill")
+                            .foregroundColor(.blue)
+                            .font(.title3)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Detection")
+                                .font(.callout.weight(.semibold))
+                            Text("Spello monitors text in other applications and detects \(selectedLanguage.displayName) characters")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "2.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.title3)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Translation")
+                                .font(.callout.weight(.semibold))
+                            Text("Detected text is translated to \(selectedLanguage.targetLanguage) using your selected AI model")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "3.circle.fill")
+                            .foregroundColor(.purple)
+                            .font(.title3)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Underline & Click")
+                                .font(.callout.weight(.semibold))
+                            Text("Detected text is underlined. Click to see the translation in a popup")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+
+            Section("Supported Languages") {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(DetectionLanguage.allCases) { language in
+                        HStack {
+                            Image(systemName: language == selectedLanguage ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(language == selectedLanguage ? .blue : .secondary)
+                            Text(language.displayName)
+                                .font(.callout)
+                            Spacer()
+                            Text("Min \(language.minWordLength) chars")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .padding()
+        .navigationTitle("Language")
     }
 }
 
