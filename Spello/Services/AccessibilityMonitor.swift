@@ -83,15 +83,17 @@ class AccessibilityMonitor: ObservableObject {
 
         // 定时检查当前焦点元素的文本
         checkTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            guard let monitor = self else { return }
             Task { @MainActor in
-                self?.checkFocusedElement()
+                monitor.checkFocusedElement()
             }
         }
 
         // 定时检查窗口位置变化（用于更新 overlay 位置）
         positionUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            guard let monitor = self else { return }
             Task { @MainActor in
-                self?.checkWindowPosition()
+                monitor.checkWindowPosition()
             }
         }
 
@@ -336,7 +338,7 @@ class AccessibilityMonitor: ObservableObject {
         let newText = nsText.replacingCharacters(in: range, with: replacement)
 
         // 设置新文本
-        var newValue = newText as CFTypeRef
+        let newValue = newText as CFTypeRef
         let error = AXUIElementSetAttributeValue(element, kAXValueAttribute as CFString, newValue)
 
         if error == .success {

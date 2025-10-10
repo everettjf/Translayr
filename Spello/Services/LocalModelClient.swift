@@ -55,7 +55,6 @@ class LocalModelClient: LocalModelClientProtocol {
 
     private func analyzeChineseText(_ text: String) async throws -> [LocalModelSuggestion] {
         var suggestions: [LocalModelSuggestion] = []
-        let nsText = text as NSString
 
         print("=== Analyzing Chinese text ===")
         print("Text: \(text)")
