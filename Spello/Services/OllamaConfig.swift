@@ -19,7 +19,9 @@ struct OllamaConfig {
     /// - qwen2.5:3b - 轻量级，适合快速翻译
     /// - llama3.2:3b - 平衡性能和准确度
     /// - gemma2:2b - 超轻量级选项
-    static let defaultModel = "qwen2.5:3b"
+    static var defaultModel: String {
+        UserDefaults.standard.string(forKey: "selectedModel") ?? "qwen2.5:3b"
+    }
 
     /// 温度参数（0.0-1.0），越低越确定
     static let temperature = 0.3

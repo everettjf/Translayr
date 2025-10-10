@@ -107,8 +107,9 @@ class SpellCheckMonitor: ObservableObject {
 
         var items: [DetectedTextItem] = []
 
-        // Priority 1: Detect sentences (split by any punctuation)
-        let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;（）()【】\\[\\]「」『』{}\\n]*[。！？；，、.!?,;（）()【】\\[\\]「」『』{}]"
+        // Priority 1: Detect sentences (split by specific punctuation, excluding parentheses)
+        // 仅使用空格、逗号、句号等作为分隔符，不包括括号
+        let sentencePattern = "[\\p{Han}][^。！？；，、.!?,;\\s\\n]*[。！？；，、.!?,;\\s]"
         if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
             let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
             print("   Found \(matches.count) sentence matches")

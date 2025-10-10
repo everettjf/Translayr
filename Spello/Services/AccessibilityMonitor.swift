@@ -155,6 +155,17 @@ class AccessibilityMonitor: ObservableObject {
             return
         }
 
+        // Check app whitelist
+        if !isAppWhitelisted(appName) {
+            print("⚠️ [AccessibilityMonitor] App '\(appName)' not in whitelist, skipping")
+            // Clear current text if we're skipping this app
+            if currentText != "" {
+                currentText = ""
+                currentElement = nil
+            }
+            return
+        }
+
         let appElement = AXUIElementCreateApplication(pid)
 
         print("\n🔍 [AccessibilityMonitor] Checking app: \(appName) (PID: \(pid))")
@@ -414,5 +425,23 @@ class AccessibilityMonitor: ObservableObject {
             // 定期触发更新，由 SpellCheckMonitor 决定是否需要更新 overlay
             windowPositionChanged.toggle()
         }
+    }
+
+    // MARK: - App Whitelist（应用白名单）
+
+    /// 检查应用是否在白名单中
+    /// - Parameter appName: 应用名称
+    /// - Returns: 如果白名单为空或应用在白名单中返回 true，否则返回 false
+    private func isAppWhitelisted(_ appName: String) -> Bool {
+        let whitelistString = UserDefaults.standard.string(forKey: "appWhitelist") ?? ""
+        let whitelist = whitelistString.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+
+        // If whitelist is empty, allow all apps
+        if whitelist.isEmpty || (whitelist.count == 1 && whitelist[0].isEmpty) {
+            return true
+        }
+
+        // Check if app is in whitelist (case-insensitive)
+        return whitelist.contains { $0.lowercased() == appName.lowercased() }
     }
 }

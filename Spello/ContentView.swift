@@ -13,30 +13,9 @@ struct ContentView: View {
     @StateObject private var accessibilityMonitor = AccessibilityMonitor.shared
     @StateObject private var spellCheckMonitor = SpellCheckMonitor.shared
 
-    @State private var text = """
-    美国数十年来主导全球科技市场。但中国想要改变这一点。
-
-    这个世界第二大经济体正投入大量资金于人工智能（AI）和机器人技术。至关重要的是，北京也在大力投资生产驱动这些尖端技术的高阶晶片（芯片）。
-
-    上个月，总部位于矽谷的AI晶片巨头英伟达（Nvidia，辉达）的老板黄仁勋警告称，中国在晶片开发方面仅比美国“落后几纳秒”。
-
-    💡 Spello monitors text input in real-time and provides translations!
-    """
-    @State private var isAutomaticSpellingCorrectionEnabled = true
-    @State private var selectedLanguage: String? = nil
     @State private var hasAccessibilityPermission = false
     @State private var showingPermissionAlert = false
-
-    private let availableLanguages = [
-        "en_US": "English (US)",
-        "en_GB": "English (UK)",
-        "es": "Spanish",
-        "fr": "French",
-        "de": "German",
-        "it": "Italian",
-        "pt": "Portuguese",
-        "zh_Hans": "Chinese (Simplified)"
-    ]
+    @State private var showingSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,7 +39,7 @@ struct ContentView: View {
 
                     Spacer()
 
-                    // Status badges
+                    // Status badges and settings button
                     HStack(spacing: 12) {
                         StatusBadge(
                             icon: accessibilityMonitor.isMonitoring ? "waveform.circle.fill" : "waveform.circle",
@@ -75,6 +54,21 @@ struct ContentView: View {
                             color: hasAccessibilityPermission ? .blue : .orange,
                             isActive: hasAccessibilityPermission
                         )
+
+                        // Settings button
+                        Button(action: { showingSettings = true }) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title3)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .onHover { hovering in
+                            if hovering {
+                                NSCursor.pointingHand.push()
+                            } else {
+                                NSCursor.pop()
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -125,53 +119,35 @@ struct ContentView: View {
 
             Divider()
 
-            // Text editor with better styling
-            SpellCheckedTextView(
-                text: $text,
-                isAutomaticSpellingCorrectionEnabled: $isAutomaticSpellingCorrectionEnabled,
-                selectedLanguage: $selectedLanguage
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(16)
-            .background(Color(NSColor.textBackgroundColor))
-            .cornerRadius(12)
-            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
-            .padding(20)
+            // 主内容区域 - 显示监控状态信息
+            VStack(spacing: 20) {
+                Spacer()
 
-            Divider()
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 80))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.blue.opacity(0.6), .purple.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
 
-            // Footer with statistics
-            HStack(spacing: 20) {
-                HStack(spacing: 6) {
-                    Image(systemName: "character.cursor.ibeam")
-                        .foregroundColor(.blue)
-                        .font(.callout)
-                    Text("\(text.count) characters")
-                        .font(.callout)
+                VStack(spacing: 8) {
+                    Text("Real-time Translation Monitor")
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.primary)
+
+                    Text("Automatically detects and translates Chinese text in other apps")
+                        .font(.body)
                         .foregroundColor(.secondary)
-                }
-
-                Divider()
-                    .frame(height: 12)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "doc.text.fill")
-                        .foregroundColor(.purple)
-                        .font(.callout)
-                    Text("\(text.split(separator: "\n").count) lines")
-                        .font(.callout)
-                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
 
                 Spacer()
-
-                Text("Powered by Ollama")
-                    .font(.caption2)
-                    .foregroundColor(.secondary.opacity(0.7))
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(40)
         }
         .frame(minWidth: 900, minHeight: 650)
         .onAppear {
@@ -199,6 +175,9 @@ struct ContentView: View {
             Button("Later", role: .cancel) { }
         } message: {
             Text("Spello needs accessibility permission to monitor text input in other apps.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nand enable Spello.")
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
         }
     }
 
