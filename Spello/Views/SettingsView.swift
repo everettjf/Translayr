@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Ollama
 
 // MARK: - Settings Section Enum
 
@@ -206,13 +207,34 @@ struct GeneralSettingsView: View {
 
 struct ModelsSettingsView: View {
     @AppStorage("selectedModel") private var selectedModel = "qwen2.5:3b"
+    @State private var availableModels: [Ollama.Client.ListModelsResponse.Model] = []
+    @State private var isLoadingModels = false
+    @State private var modelLoadError: String?
 
-    // 可用模型列表
-    private let availableModels: [(key: String, value: String)] = [
-        ("qwen2.5:3b", "Qwen 2.5 (3B) - Fast & Lightweight"),
-        ("llama3.2:3b", "Llama 3.2 (3B) - Balanced"),
-        ("gemma2:2b", "Gemma 2 (2B) - Ultra Lightweight"),
-        ("qwen2.5:7b", "Qwen 2.5 (7B) - High Quality")
+    private static let byteFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useGB, .useMB, .useKB]
+        formatter.countStyle = .file
+        return formatter
+    }()
+
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter
+    }()
+
+    private let recommendations: [String: String] = [
+        "qwen2.5:3b": "Fast & lightweight",
+        "llama3.2:3b": "Balanced quality",
+        "gemma2:2b": "Ultra lightweight",
+        "qwen2.5:7b": "High accuracy"
     ]
 
     var body: some View {
@@ -224,14 +246,63 @@ struct ModelsSettingsView: View {
             }
 
             Section("Available Models") {
-                Picker("Default model", selection: $selectedModel) {
-                    ForEach(availableModels, id: \.key) { model in
-                        Text(model.value)
-                            .tag(model.key)
+                if isLoadingModels {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text("Loading models…")
                     }
+                    .padding(.vertical, 4)
+                } else if let modelLoadError {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Unable to load models", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(modelLoadError)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button {
+                            Task { await refreshModels(force: true) }
+                        } label: {
+                            Label("Retry", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isLoadingModels)
+                    }
+                } else if availableModels.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("No local models detected")
+                            .font(.callout.weight(.medium))
+                        Text("Run `ollama pull <model>` to install a model, then refresh.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Button {
+                            Task { await refreshModels(force: true) }
+                        } label: {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isLoadingModels)
+                    }
+                } else {
+                    Picker("Default model", selection: $selectedModel) {
+                        ForEach(availableModels, id: \.name) { model in
+                            Text(displayName(for: model))
+                                .tag(model.name)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+
+                    Button {
+                        Task { await refreshModels(force: true) }
+                    } label: {
+                        Label("Refresh Models", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(isLoadingModels)
                 }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
             }
 
             Section {
@@ -251,6 +322,70 @@ struct ModelsSettingsView: View {
         .formStyle(.grouped)
         .padding()
         .navigationTitle("Models")
+        .task {
+            await refreshModels()
+        }
+    }
+
+    @MainActor
+    private func refreshModels(force: Bool = false) async {
+        if isLoadingModels && !force {
+            return
+        }
+
+        isLoadingModels = true
+        modelLoadError = nil
+
+        defer { isLoadingModels = false }
+
+        do {
+            guard let hostURL = URL(string: "\(OllamaConfig.host):\(OllamaConfig.port)") else {
+                modelLoadError = "Invalid Ollama host configuration."
+                return
+            }
+
+            let client = Ollama.Client(host: hostURL)
+            let response = try await client.listModels()
+            let models = response.models.sorted { lhs, rhs in
+                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+
+            availableModels = models
+
+            if let firstModel = models.first,
+               models.contains(where: { $0.name == selectedModel }) == false {
+                selectedModel = firstModel.name
+            }
+
+            modelLoadError = nil
+        } catch {
+            if let clientError = error as? Ollama.Client.Error {
+                modelLoadError = clientError.description
+            } else {
+                modelLoadError = error.localizedDescription
+            }
+            print("⚠️ Failed to fetch models: \(error)")
+        }
+    }
+
+    private func displayName(for model: Ollama.Client.ListModelsResponse.Model) -> String {
+        var components: [String] = []
+
+        components.append(model.name)
+
+        if let hint = recommendations[model.name] {
+            components.append(hint)
+        }
+
+        let sizeString = Self.byteFormatter.string(fromByteCount: model.size)
+        components.append(sizeString)
+
+        if let date = Self.isoFormatter.date(from: model.modifiedAt) {
+            let relativeDate = Self.relativeFormatter.localizedString(for: date, relativeTo: Date())
+            components.append(relativeDate)
+        }
+
+        return components.joined(separator: " • ")
     }
 }
 
