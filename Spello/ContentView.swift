@@ -40,72 +40,140 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Header with gradient
+            VStack(spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Spello")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                        Text("智能中文翻译助手")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
 
-            // Text editor
+                    Spacer()
+
+                    // Status badges
+                    HStack(spacing: 12) {
+                        StatusBadge(
+                            icon: accessibilityMonitor.isMonitoring ? "waveform.circle.fill" : "waveform.circle",
+                            text: accessibilityMonitor.isMonitoring ? "监控中" : "未激活",
+                            color: accessibilityMonitor.isMonitoring ? .green : .gray,
+                            isActive: accessibilityMonitor.isMonitoring
+                        )
+
+                        StatusBadge(
+                            icon: hasAccessibilityPermission ? "checkmark.shield.fill" : "exclamationmark.shield.fill",
+                            text: hasAccessibilityPermission ? "已授权" : "需授权",
+                            color: hasAccessibilityPermission ? .blue : .orange,
+                            isActive: hasAccessibilityPermission
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 12)
+
+                if !hasAccessibilityPermission {
+                    HStack(spacing: 12) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.orange)
+
+                        Text("需要辅助功能权限才能监控其他应用的文本")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        Button(action: requestAccessibilityPermission) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "hand.raised.fill")
+                                Text("授予权限")
+                            }
+                            .font(.callout.weight(.medium))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.regular)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+                }
+            }
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(NSColor.controlBackgroundColor),
+                        Color(NSColor.controlBackgroundColor).opacity(0.5)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            Divider()
+
+            // Text editor with better styling
             SpellCheckedTextView(
                 text: $text,
                 isAutomaticSpellingCorrectionEnabled: $isAutomaticSpellingCorrectionEnabled,
                 selectedLanguage: $selectedLanguage
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(8)
+            .padding(16)
             .background(Color(NSColor.textBackgroundColor))
-            .cornerRadius(6)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            // System-wide monitoring status section
-            VStack(spacing: 8) {
-                HStack {
-                    // Monitoring status indicator
-                    HStack(spacing: 6) {
-                        Image(systemName: accessibilityMonitor.isMonitoring ? "circle.fill" : "circle")
-                            .foregroundColor(accessibilityMonitor.isMonitoring ? .green : .secondary)
-                            .font(.caption)
-                        Text(accessibilityMonitor.isMonitoring ? "Monitoring Active" : "Monitoring Inactive")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    // Permission status indicator
-                    HStack(spacing: 4) {
-                        Image(systemName: hasAccessibilityPermission ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(hasAccessibilityPermission ? .green : .orange)
-                        Text(hasAccessibilityPermission ? "Accessibility Granted" : "Accessibility Required")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if !hasAccessibilityPermission {
-                        Button("Grant Permission") {
-                            requestAccessibilityPermission()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-            }
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(12)
+            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+            .padding(20)
 
             Divider()
 
-            // Status bar
-            HStack {
-                Text("Characters: \(text.count)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+            // Footer with statistics
+            HStack(spacing: 20) {
+                HStack(spacing: 6) {
+                    Image(systemName: "character.cursor.ibeam")
+                        .foregroundColor(.blue)
+                        .font(.callout)
+                    Text("\(text.count) 字符")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+                    .frame(height: 12)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.text.fill")
+                        .foregroundColor(.purple)
+                        .font(.callout)
+                    Text("\(text.split(separator: "\n").count) 行")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
 
                 Spacer()
+
+                Text("Powered by Ollama")
+                    .font(.caption2)
+                    .foregroundColor(.secondary.opacity(0.7))
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(NSColor.controlBackgroundColor))
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
         }
-        .frame(minWidth: 800, minHeight: 600)
+        .frame(minWidth: 900, minHeight: 650)
         .onAppear {
             // Set up initial spell checking
             NSSpellChecker.shared.automaticallyIdentifiesLanguages = true
@@ -156,6 +224,38 @@ struct ContentView: View {
         } else {
             requestAccessibilityPermission()
         }
+    }
+}
+
+// MARK: - Status Badge Component
+
+struct StatusBadge: View {
+    let icon: String
+    let text: String
+    let color: Color
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.callout)
+                .foregroundColor(color)
+                .symbolEffect(.pulse, options: .repeating, value: isActive)
+
+            Text(text)
+                .font(.caption.weight(.medium))
+                .foregroundColor(color)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(color.opacity(0.15))
+                .overlay(
+                    Capsule()
+                        .strokeBorder(color.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 }
 

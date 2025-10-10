@@ -317,9 +317,9 @@ class OverlayWindowManager {
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
 
-        // 创建翻译弹窗
-        let popupWidth: CGFloat = 350
-        let popupHeight: CGFloat = 250
+        // 创建翻译弹窗（使用新的尺寸）
+        let popupWidth: CGFloat = 380
+        let popupHeight: CGFloat = 280
 
         // 计算弹窗位置（在文字下方，增加间距使其更靠下）
         var popupX = textBounds.origin.x
@@ -344,19 +344,22 @@ class OverlayWindowManager {
 
         let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
 
-        // 使用 NSPanel 而不是 NSWindow，并设置为 HUD 样式
+        // 使用无边框的 NSPanel，实现现代化的浮动窗口效果
         // NSPanel 更适合临时弹窗，失去焦点时会自动隐藏
         let popupPanel = NSPanel(
             contentRect: popupFrame,
-            styleMask: [.titled, .nonactivatingPanel],  // 去掉 .closable，使用 nonactivatingPanel
+            styleMask: [.borderless, .nonactivatingPanel],  // 无边框设计
             backing: .buffered,
             defer: false
         )
 
-        popupPanel.title = "Translation: \(text)"
+        // 窗口配置
         popupPanel.level = .floating
-        popupPanel.isMovableByWindowBackground = true
+        popupPanel.isMovableByWindowBackground = false
         popupPanel.hidesOnDeactivate = true  // 失去焦点时自动隐藏
+        popupPanel.isOpaque = false
+        popupPanel.backgroundColor = .clear
+        popupPanel.hasShadow = false  // 使用 SwiftUI 的阴影
 
         // 创建 SwiftUI 视图
         let translationsView = TranslationPopupView(
@@ -392,75 +395,149 @@ struct TranslationPopupView: View {
     let translations: [String]
     let onSelect: (String) -> Void
 
+    @State private var hoveredIndex: Int? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Translation")
-                        .font(.headline)
-                    Text(originalText)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+            // Header with gradient
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: "character.book.closed.fill")
+                        .font(.title2)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("翻译")
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.primary)
+
+                        Text(originalText)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
+
                 Spacer()
             }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(NSColor.controlBackgroundColor),
+                        Color(NSColor.controlBackgroundColor).opacity(0.7)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
 
             Divider()
 
             // Translations list
             if translations.isEmpty {
-                VStack {
+                VStack(spacing: 12) {
                     Spacer()
-                    Text("Loading translations...")
+
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .progressViewStyle(.circular)
+
+                    Text("正在翻译...")
+                        .font(.callout)
                         .foregroundColor(.secondary)
+
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                ScrollView {
-                    VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 6) {
                         ForEach(Array(translations.enumerated()), id: \.offset) { index, translation in
-                            Button(action: {
-                                onSelect(translation)
-                            }) {
-                                HStack(spacing: 12) {
-                                    Text(translation)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.primary)
-                                        .multilineTextAlignment(.leading)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                                    Image(systemName: "arrow.right.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .imageScale(.medium)
+                            TranslationRow(
+                                translation: translation,
+                                isHovered: hoveredIndex == index,
+                                onSelect: { onSelect(translation) },
+                                onHover: { hovering in
+                                    hoveredIndex = hovering ? index : nil
                                 }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
-                                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
-                            }
-                            .buttonStyle(.plain)
-                            .contentShape(Rectangle())
-                            .onHover { hovering in
-                                if hovering {
-                                    NSCursor.pointingHand.push()
-                                } else {
-                                    NSCursor.pop()
-                                }
-                            }
-
-                            if index < translations.count - 1 {
-                                Divider()
-                                    .padding(.leading, 12)
-                            }
+                            )
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 12)
                 }
             }
         }
-        .frame(width: 350, height: 250)
+        .frame(width: 380, height: 280)
+        .background(Color(NSColor.windowBackgroundColor))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+    }
+}
+
+// MARK: - Translation Row Component
+
+struct TranslationRow: View {
+    let translation: String
+    let isHovered: Bool
+    let onSelect: () -> Void
+    let onHover: (Bool) -> Void
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                // Translation text
+                Text(translation)
+                    .font(.system(size: 15, weight: isHovered ? .medium : .regular))
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(2)
+
+                // Arrow icon with animation
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: isHovered ? [.blue, .purple] : [.gray, .gray],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .scaleEffect(isHovered ? 1.1 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovered)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isHovered ? Color.blue.opacity(0.08) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(
+                                isHovered ? Color.blue.opacity(0.3) : Color.clear,
+                                lineWidth: 1.5
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            onHover(hovering)
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
