@@ -221,19 +221,39 @@ struct LanguageSettingsView: View {
             }
 
             Section("Detection Language") {
-                Picker("Language to detect", selection: $selectedLanguage) {
+                Picker("Select language", selection: $selectedLanguage) {
                     ForEach(DetectionLanguage.allCases) { language in
-                        HStack {
-                            Text(language.displayName)
-                            Spacer()
-                        }
-                        .tag(language)
+                        Text(language.displayName)
+                            .tag(language)
                     }
                 }
-                .pickerStyle(.radioGroup)
-                .labelsHidden()
-                .onChange(of: selectedLanguage) { newLanguage in
+                .pickerStyle(.menu)
+                .onChange(of: selectedLanguage) { _, newLanguage in
                     LanguageConfig.detectionLanguage = newLanguage
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.blue)
+                            .font(.callout)
+
+                        Text("Spello will detect and translate \(selectedLanguage.displayName) text to \(selectedLanguage.targetLanguage)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                            .font(.callout)
+
+                        Text("Please ensure your selected AI model supports \(selectedLanguage.displayName) translation")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
