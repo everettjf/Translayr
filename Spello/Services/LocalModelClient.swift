@@ -142,8 +142,17 @@ class LocalModelClient: LocalModelClientProtocol {
                 fullResponse = response.response
             }
 
-            // 清理响应
-            let cleaned = fullResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+            // 清理响应：移除前后空白，并将内部换行符替换为空格
+            var cleaned = fullResponse
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
+
+            // 递归合并多余空格
+            while cleaned.contains("  ") {
+                cleaned = cleaned.replacingOccurrences(of: "  ", with: " ")
+            }
+
             return cleaned
 
         } catch {

@@ -99,6 +99,16 @@ class SpellService: ObservableObject, SpellAnalyzing {
         }
     }
 
+    // 直接翻译文本，不分词
+    func translateText(_ text: String) async throws -> String {
+        guard isLocalModelEnabled else {
+            throw LocalModelError.serverError
+        }
+
+        let localModelClient = LocalModelClient()
+        return try await localModelClient.translateChineseToEnglish(text)
+    }
+
     func merge(_ systemSuggestions: [Suggestion], _ modelSuggestions: [Suggestion]) -> [Suggestion] {
         var mergedSuggestions: [Suggestion] = []
         var processedRanges: Set<NSRange> = []

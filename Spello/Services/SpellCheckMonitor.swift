@@ -75,14 +75,17 @@ class SpellCheckMonitor: ObservableObject {
     func translateItem(_ item: DetectedTextItem) async -> [String] {
         print("🔄 Translating: \(item.text)")
 
-        // 使用 AI 获取翻译建议
-        let aiSuggestions = await spellService.analyzeWithLocalModelAsync(text: item.text, language: nil)
+        // 直接翻译整个文本，不分词
+        do {
+            let translation = try await spellService.translateText(item.text)
+            print("✅ Got translation: \(translation)")
 
-        // 提取翻译候选
-        let translations = aiSuggestions.flatMap { $0.candidates }
-        print("✅ Got \(translations.count) translations")
-
-        return translations
+            // 返回单个翻译结果
+            return [translation]
+        } catch {
+            print("❌ Translation failed: \(error)")
+            return []
+        }
     }
 
     // MARK: - Private Methods（私有方法）
