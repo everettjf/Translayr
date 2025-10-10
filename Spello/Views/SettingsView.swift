@@ -31,7 +31,6 @@ enum PreferencesSection: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @State private var selection: PreferencesSection? = .general
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationSplitView {
@@ -41,34 +40,23 @@ struct SettingsView: View {
                     .tag(section)
             }
             .listStyle(.sidebar)
-            .navigationTitle("Settings")
+            .navigationTitle("Spello")
             .frame(minWidth: 180)
         } detail: {
             // Detail content
-            Group {
-                switch selection {
-                case .general:
-                    GeneralSettingsView()
-                case .models:
-                    ModelsSettingsView()
-                case .skipApps:
-                    SkipAppsSettingsView()
-                case .about:
-                    AboutView()
-                case .none:
-                    Text("Select a section from the sidebar")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .automatic) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.plain)
-                }
+            switch selection {
+            case .general:
+                GeneralSettingsView()
+            case .models:
+                ModelsSettingsView()
+            case .skipApps:
+                SkipAppsSettingsView()
+            case .about:
+                AboutView()
+            case .none:
+                Text("Select a section from the sidebar")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
             }
         }
         .frame(minWidth: 720, minHeight: 480)
@@ -78,32 +66,139 @@ struct SettingsView: View {
 // MARK: - General Settings
 
 struct GeneralSettingsView: View {
-    @AppStorage("autoLaunchAtLogin") private var autoLaunch = false
-    @AppStorage("showNotifications") private var showNotifications = true
+    @StateObject private var accessibilityMonitor = AccessibilityMonitor.shared
+    @StateObject private var spellCheckMonitor = SpellCheckMonitor.shared
+
+    @State private var hasAccessibilityPermission = false
+    @State private var showingPermissionAlert = false
+    @State private var permissionCheckTimer: Timer?
 
     var body: some View {
         Form {
-            Section("Behavior") {
-                Toggle("Launch at login", isOn: $autoLaunch)
-                    .disabled(true) // TODO: Implement launch at login
+            Section("Status") {
+                // Monitoring Status
+                HStack {
+                    Label("Monitoring Status", systemImage: accessibilityMonitor.isMonitoring ? "waveform.circle.fill" : "waveform.circle")
+                        .foregroundColor(accessibilityMonitor.isMonitoring ? .green : .secondary)
 
-                Toggle("Show notifications", isOn: $showNotifications)
-                    .disabled(true) // TODO: Implement notifications
+                    Spacer()
+
+                    Text(accessibilityMonitor.isMonitoring ? "Active" : "Inactive")
+                        .font(.callout.weight(.medium))
+                        .foregroundColor(accessibilityMonitor.isMonitoring ? .green : .secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(accessibilityMonitor.isMonitoring ? Color.green.opacity(0.15) : Color.secondary.opacity(0.15))
+                        )
+                }
+
+                // Accessibility Permission Status
+                HStack {
+                    Label("Accessibility Permission", systemImage: hasAccessibilityPermission ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                        .foregroundColor(hasAccessibilityPermission ? .blue : .orange)
+
+                    Spacer()
+
+                    if hasAccessibilityPermission {
+                        Text("Granted")
+                            .font(.callout.weight(.medium))
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(Color.blue.opacity(0.15))
+                            )
+                    } else {
+                        Button("Grant Permission") {
+                            requestAccessibilityPermission()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                }
+
+                if !hasAccessibilityPermission {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundColor(.orange)
+                            .font(.callout)
+
+                        Text("Accessibility permission is required to monitor text in other applications")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
 
             Section("Performance") {
-                HStack {
+                HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "info.circle")
                         .foregroundColor(.blue)
+                        .font(.callout)
+
                     Text("Translation requests are processed locally using Ollama")
                         .font(.callout)
                         .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
         .formStyle(.grouped)
         .padding()
         .navigationTitle("General")
+        .onAppear {
+            checkAccessibilityPermission()
+            startSystemWideMonitoring()
+
+            // Start timer to periodically check permission status
+            permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+                Task { @MainActor in
+                    checkAccessibilityPermission()
+                    // Auto-start monitoring when permission is granted
+                    if hasAccessibilityPermission && !accessibilityMonitor.isMonitoring {
+                        startSystemWideMonitoring()
+                    }
+                }
+            }
+        }
+        .onDisappear {
+            permissionCheckTimer?.invalidate()
+            permissionCheckTimer = nil
+        }
+        .alert("Accessibility Permission Required", isPresented: $showingPermissionAlert) {
+            Button("Open System Settings") {
+                openSystemPreferences()
+            }
+            Button("Later", role: .cancel) { }
+        } message: {
+            Text("Spello needs accessibility permission to monitor text input in other apps.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nand enable Spello.")
+        }
+    }
+
+    private func checkAccessibilityPermission() {
+        hasAccessibilityPermission = accessibilityMonitor.checkAccessibilityPermission()
+    }
+
+    private func requestAccessibilityPermission() {
+        accessibilityMonitor.requestAccessibilityPermission()
+        showingPermissionAlert = true
+    }
+
+    private func openSystemPreferences() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func startSystemWideMonitoring() {
+        if hasAccessibilityPermission {
+            accessibilityMonitor.startMonitoring()
+            spellCheckMonitor.startMonitoring()
+        }
     }
 }
 

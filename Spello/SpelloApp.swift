@@ -13,7 +13,7 @@ struct SpelloApp: App {
 
     var body: some Scene {
         WindowGroup(makeContent: {
-            ContentView()
+            SettingsView()
         })
         .commands {
             // 可以添加自定义菜单命令
