@@ -53,7 +53,7 @@ struct ContentView: View {
                                     endPoint: .trailing
                                 )
                             )
-                        Text("智能中文翻译助手")
+                        Text("Intelligent Translation Assistant")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -64,14 +64,14 @@ struct ContentView: View {
                     HStack(spacing: 12) {
                         StatusBadge(
                             icon: accessibilityMonitor.isMonitoring ? "waveform.circle.fill" : "waveform.circle",
-                            text: accessibilityMonitor.isMonitoring ? "监控中" : "未激活",
+                            text: accessibilityMonitor.isMonitoring ? "Enabled" : "Inactive",
                             color: accessibilityMonitor.isMonitoring ? .green : .gray,
                             isActive: accessibilityMonitor.isMonitoring
                         )
 
                         StatusBadge(
                             icon: hasAccessibilityPermission ? "checkmark.shield.fill" : "exclamationmark.shield.fill",
-                            text: hasAccessibilityPermission ? "已授权" : "需授权",
+                            text: hasAccessibilityPermission ? "Authorized" : "Needs Permission",
                             color: hasAccessibilityPermission ? .blue : .orange,
                             isActive: hasAccessibilityPermission
                         )
@@ -86,7 +86,7 @@ struct ContentView: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.orange)
 
-                        Text("需要辅助功能权限才能监控其他应用的文本")
+                        Text("Accessibility permission needed to monitor text in other apps")
                             .font(.callout)
                             .foregroundColor(.secondary)
 
@@ -95,7 +95,7 @@ struct ContentView: View {
                         Button(action: requestAccessibilityPermission) {
                             HStack(spacing: 6) {
                                 Image(systemName: "hand.raised.fill")
-                                Text("授予权限")
+                                Text("Grant Permission")
                             }
                             .font(.callout.weight(.medium))
                         }
@@ -146,7 +146,7 @@ struct ContentView: View {
                     Image(systemName: "character.cursor.ibeam")
                         .foregroundColor(.blue)
                         .font(.callout)
-                    Text("\(text.count) 字符")
+                    Text("\(text.count) characters")
                         .font(.callout)
                         .foregroundColor(.secondary)
                 }
@@ -158,7 +158,7 @@ struct ContentView: View {
                     Image(systemName: "doc.text.fill")
                         .foregroundColor(.purple)
                         .font(.callout)
-                    Text("\(text.split(separator: "\n").count) 行")
+                    Text("\(text.split(separator: "\n").count) lines")
                         .font(.callout)
                         .foregroundColor(.secondary)
                 }
@@ -183,10 +183,12 @@ struct ContentView: View {
             startSystemWideMonitoring()
             // Start timer to periodically check permission status
             Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
-                checkAccessibilityPermission()
-                // Auto-start monitoring when permission is granted
-                if hasAccessibilityPermission && !accessibilityMonitor.isMonitoring {
-                    startSystemWideMonitoring()
+                Task { @MainActor in
+                    checkAccessibilityPermission()
+                    // Auto-start monitoring when permission is granted
+                    if hasAccessibilityPermission && !accessibilityMonitor.isMonitoring {
+                        startSystemWideMonitoring()
+                    }
                 }
             }
         }

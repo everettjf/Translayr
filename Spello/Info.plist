@@ -21,7 +21,7 @@
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Spello 需要辅助功能权限来监控其他应用中的文本输入，以提供实时的拼写检查和翻译建议。</string>
+	<string>Spello needs accessibility permission to monitor text input in other apps for real-time spell checking and translation suggestions.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string></string>
 	<key>NSPrincipalClass</key>
