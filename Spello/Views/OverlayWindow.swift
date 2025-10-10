@@ -164,7 +164,7 @@ class UnderlineView: NSView {
         let underlineY: CGFloat = 2
         path.move(to: NSPoint(x: 0, y: underlineY))
         path.line(to: NSPoint(x: bounds.width, y: underlineY))
-        path.lineWidth = 2
+        path.lineWidth = 1
         path.stroke()
     }
 
@@ -425,7 +425,7 @@ struct TranslationPopupView: View {
                     Text(originalText)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(5)
                 }
 
                 Spacer()
@@ -525,7 +525,7 @@ struct TranslationRow: View {
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(2)
+                    .lineLimit(5)
 
                 // Arrow icon with animation
                 Image(systemName: "arrow.right.circle.fill")
