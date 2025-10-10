@@ -71,8 +71,8 @@ class SpellCheckMonitor: ObservableObject {
 
     /// 翻译指定的检测项（当用户点击下划线时调用）
     /// - Parameter item: 要翻译的文本项
-    /// - Returns: 翻译候选列表
-    func translateItem(_ item: DetectedTextItem) async -> [String] {
+    /// - Returns: 翻译结果字符串（失败时为空字符串）
+    func translateItem(_ item: DetectedTextItem) async -> String {
         print("🔄 Translating: \(item.text)")
 
         // 直接翻译整个文本，不分词
@@ -80,11 +80,10 @@ class SpellCheckMonitor: ObservableObject {
             let translation = try await spellService.translateText(item.text)
             print("✅ Got translation: \(translation)")
 
-            // 返回单个翻译结果
-            return [translation]
+            return translation
         } catch {
             print("❌ Translation failed: \(error)")
-            return []
+            return ""
         }
     }
 

@@ -296,7 +296,8 @@ class OverlayWindowManager {
         print("🔄 Getting translations for: \(text)")
 
         // Get translations from SpellCheckMonitor
-        let translations = await SpellCheckMonitor.shared.translateItem(item)
+        let translation = await SpellCheckMonitor.shared.translateItem(item)
+        let translations = translation.isEmpty ? [] : [translation]
 
         // Show translation popup near the clicked text
         showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
@@ -324,8 +325,8 @@ class OverlayWindowManager {
         currentTranslationPopup = nil
 
         // 创建翻译弹窗（使用新的尺寸）
-        let popupWidth: CGFloat = 280
-        let popupHeight: CGFloat = 200
+        let popupWidth: CGFloat = 200
+        let popupHeight: CGFloat = 150
 
         // 计算弹窗位置（在文字下方，增加间距使其更靠下）
         var popupX = textBounds.origin.x
