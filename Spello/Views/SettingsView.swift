@@ -21,7 +21,7 @@ enum PreferencesSection: String, CaseIterable, Identifiable {
         switch self {
         case .general: return "gearshape"
         case .models: return "cpu"
-        case .skipApps: return "app.badge.xmark"
+        case .skipApps: return "eraser"
         case .about: return "info.circle"
         }
     }

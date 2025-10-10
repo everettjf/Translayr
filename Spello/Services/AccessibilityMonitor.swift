@@ -82,14 +82,14 @@ class AccessibilityMonitor: ObservableObject {
         setupAccessibilityNotifications()
 
         // 定时检查当前焦点元素的文本
-        checkTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        checkTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkFocusedElement()
             }
         }
 
         // 定时检查窗口位置变化（用于更新 overlay 位置）
-        positionUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        positionUpdateTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.checkWindowPosition()
             }
