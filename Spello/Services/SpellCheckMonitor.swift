@@ -104,7 +104,7 @@ class SpellCheckMonitor: ObservableObject {
             return
         }
 
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         print("\n🔍 [SpellCheckMonitor] Detecting \(language.displayName) in text (\(text.count) chars)")
         print("   First 100 chars: \(String(text.prefix(100)))")
 

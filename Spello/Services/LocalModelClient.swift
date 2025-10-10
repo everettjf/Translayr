@@ -35,28 +35,28 @@ class LocalModelClient: LocalModelClientProtocol {
     }
 
     func analyzeText(_ text: String, language: String? = nil) async throws -> [LocalModelSuggestion] {
-        let detectionLanguage = LanguageConfig.detectionLanguage
+        let sourceLanguage = LanguageConfig.sourceLanguage
         print("LocalModelClient: analyzeText called")
-        print("Text contains \(detectionLanguage.displayName): \(containsTargetLanguage(text))")
+        print("Text contains \(sourceLanguage.displayName): \(containsTargetLanguage(text))")
 
         // 检测文本是否包含目标语言
         if containsTargetLanguage(text) {
             return try await analyzeTargetLanguageText(text)
         }
 
-        print("No \(detectionLanguage.displayName) detected, returning empty suggestions")
+        print("No \(sourceLanguage.displayName) detected, returning empty suggestions")
         // 对于非目标语言文本，返回空数组
         return []
     }
 
     private func containsTargetLanguage(_ text: String) -> Bool {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         let languageRange = text.range(of: language.unicodePattern, options: .regularExpression)
         return languageRange != nil
     }
 
     private func analyzeTargetLanguageText(_ text: String) async throws -> [LocalModelSuggestion] {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         var suggestions: [LocalModelSuggestion] = []
 
         print("=== Analyzing \(language.displayName) text ===")
@@ -100,8 +100,9 @@ class LocalModelClient: LocalModelClientProtocol {
     }
 
     func translateText(_ text: String) async throws -> String {
-        let language = LanguageConfig.detectionLanguage
-        let prompt = language.translationPrompt(for: text)
+        let sourceLanguage = LanguageConfig.sourceLanguage
+        let targetLanguage = LanguageConfig.targetLanguage
+        let prompt = sourceLanguage.translationPrompt(for: text, targetLanguage: targetLanguage)
 
         do {
             guard let modelID = Model.ID(rawValue: modelName) else {
@@ -160,7 +161,7 @@ class LocalModelClient: LocalModelClientProtocol {
     }
 
     private func segmentText(_ text: String) -> [(text: String, range: NSRange)] {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         let nsText = text as NSString
         var segments: [(text: String, range: NSRange)] = []
 

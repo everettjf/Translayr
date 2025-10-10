@@ -210,7 +210,8 @@ struct GeneralSettingsView: View {
 // MARK: - Language Settings
 
 struct LanguageSettingsView: View {
-    @State private var selectedLanguage = LanguageConfig.detectionLanguage
+    @State private var selectedLanguage = LanguageConfig.sourceLanguage
+    @State private var selectedTargetLanguage = LanguageConfig.targetLanguage
 
     var body: some View {
         Form {
@@ -220,25 +221,72 @@ struct LanguageSettingsView: View {
                     .foregroundColor(.secondary)
             }
 
-            Section("Detection Language") {
+            Section("Source Language (Detect)") {
                 Picker("Select language", selection: $selectedLanguage) {
-                    ForEach(DetectionLanguage.allCases) { language in
+                    ForEach(Language.allCases) { language in
                         Text(language.displayName)
                             .tag(language)
                     }
                 }
                 .pickerStyle(.menu)
                 .onChange(of: selectedLanguage) { _, newLanguage in
-                    LanguageConfig.detectionLanguage = newLanguage
+                    LanguageConfig.sourceLanguage = newLanguage
+                }
+
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.blue)
+                        .font(.callout)
+
+                    Text("Spello will detect \(selectedLanguage.displayName) text in other applications")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Section("Target Language (Translate to)") {
+                Picker("Select target language", selection: $selectedTargetLanguage) {
+                    ForEach(Language.allCases) { language in
+                        Text(language.displayName)
+                            .tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: selectedTargetLanguage) { _, newLanguage in
+                    LanguageConfig.targetLanguage = newLanguage
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
+                    // Same language warning - prominent display
+                    if selectedLanguage == selectedTargetLanguage {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.red)
+                                .font(.title3)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Warning: Same Language Selected")
+                                    .font(.callout.weight(.semibold))
+                                    .foregroundColor(.red)
+
+                                Text("Source and target languages are both \(selectedLanguage.displayName). Translation may not work as expected.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding()
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "info.circle")
                             .foregroundColor(.blue)
                             .font(.callout)
 
-                        Text("Spello will detect and translate \(selectedLanguage.displayName) text to \(selectedLanguage.targetLanguage)")
+                        Text("Detected text will be translated to \(selectedTargetLanguage.displayName)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -249,7 +297,7 @@ struct LanguageSettingsView: View {
                             .foregroundColor(.orange)
                             .font(.callout)
 
-                        Text("Please ensure your selected AI model supports \(selectedLanguage.displayName) translation")
+                        Text("Please ensure your selected AI model supports \(selectedLanguage.displayName) → \(selectedTargetLanguage.displayName) translation")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -279,7 +327,7 @@ struct LanguageSettingsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Translation")
                                 .font(.callout.weight(.semibold))
-                            Text("Detected text is translated to \(selectedLanguage.targetLanguage) using your selected AI model")
+                            Text("Detected text is translated to \(selectedTargetLanguage.displayName) using your selected AI model")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

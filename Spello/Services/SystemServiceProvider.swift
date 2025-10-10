@@ -74,7 +74,7 @@ class SystemServiceProvider: NSObject {
     // MARK: - Helper Methods
 
     private func translateText(_ text: String) async -> String {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         print("Translating text: \(text)")
 
         // 检测是否包含目标语言
@@ -94,7 +94,7 @@ class SystemServiceProvider: NSObject {
     }
 
     private func getTranslations(_ text: String) async -> [String] {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         print("Getting translations for: \(text)")
 
         guard containsTargetLanguage(text) else {
@@ -111,7 +111,7 @@ class SystemServiceProvider: NSObject {
     }
 
     private func containsTargetLanguage(_ text: String) -> Bool {
-        let language = LanguageConfig.detectionLanguage
+        let language = LanguageConfig.sourceLanguage
         let languageRange = text.range(of: language.unicodePattern, options: .regularExpression)
         return languageRange != nil
     }
