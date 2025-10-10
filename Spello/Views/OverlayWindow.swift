@@ -418,7 +418,7 @@ struct TranslationPopupView: View {
                     )
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("翻译")
+                    Text("Translation")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.primary)
 
@@ -471,7 +471,7 @@ struct TranslationPopupView: View {
                         .scaleEffect(0.7)
                         .progressViewStyle(.circular)
 
-                    Text("正在翻译...")
+                    Text("Translating...")
                         .font(.caption)
                         .foregroundColor(.secondary)
 

@@ -48,9 +48,9 @@ class StatusBarController {
     private func setupMenu() {
         menu = NSMenu()
 
-        // 监控状态
+        // Monitoring status
         monitoringStatusMenuItem = NSMenuItem(
-            title: "监控状态：未激活",
+            title: "Status: Inactive",
             action: nil,
             keyEquivalent: ""
         )
@@ -59,9 +59,9 @@ class StatusBarController {
 
         menu?.addItem(NSMenuItem.separator())
 
-        // 打开主窗口
+        // Open main window
         let openWindowItem = NSMenuItem(
-            title: "打开主窗口",
+            title: "Open Main Window",
             action: #selector(openMainWindow),
             keyEquivalent: "o"
         )
@@ -70,18 +70,18 @@ class StatusBarController {
 
         menu?.addItem(NSMenuItem.separator())
 
-        // 设置
+        // Settings
         let settingsItem = NSMenuItem(
-            title: "设置...",
+            title: "Settings...",
             action: #selector(openSettings),
             keyEquivalent: ","
         )
         settingsItem.target = self
         menu?.addItem(settingsItem)
 
-        // 关于
+        // About
         let aboutItem = NSMenuItem(
-            title: "关于 Spello",
+            title: "About Spello",
             action: #selector(showAbout),
             keyEquivalent: ""
         )
@@ -90,9 +90,9 @@ class StatusBarController {
 
         menu?.addItem(NSMenuItem.separator())
 
-        // 退出
+        // Quit
         let quitItem = NSMenuItem(
-            title: "退出 Spello",
+            title: "Quit Spello",
             action: #selector(quitApp),
             keyEquivalent: "q"
         )
@@ -122,7 +122,7 @@ class StatusBarController {
     /// 更新监控状态显示
     private func updateMonitoringStatus() {
         let isMonitoring = AccessibilityMonitor.shared.isMonitoring
-        let statusText = isMonitoring ? "✅ 监控状态：已激活" : "⏸ 监控状态：未激活"
+        let statusText = isMonitoring ? "✅ Status: Active" : "⏸ Status: Inactive"
         monitoringStatusMenuItem?.title = statusText
     }
 
@@ -152,30 +152,30 @@ class StatusBarController {
 
     @objc private func openSettings() {
         print("⚙️ Opening settings...")
-        // TODO: 实现设置窗口
-        showAlert(title: "设置", message: "设置功能即将推出")
+        // TODO: Open settings window
+        showAlert(title: "Settings", message: "Settings feature coming soon")
     }
 
     @objc private func showAbout() {
         print("ℹ️ Showing about...")
 
         let alert = NSAlert()
-        alert.messageText = "关于 Spello"
+        alert.messageText = "About Spello"
         alert.informativeText = """
-        版本：1.0.0
+        Version: 1.0.0
 
-        Spello 是一个智能的中文翻译助手，能够在任何应用中实时检测中文文本并提供 AI 翻译建议。
+        Spello is an intelligent Chinese translation assistant that can detect Chinese text in any application in real-time and provide AI-powered translation suggestions.
 
-        功能特性：
-        • 系统级文本监控
-        • 智能中文检测
-        • AI 翻译（基于 Ollama）
-        • 浮动下划线提示
+        Features:
+        • System-wide text monitoring
+        • Smart Chinese detection
+        • AI translation (powered by Ollama)
+        • Floating underline hints
 
         © 2025 eevv
         """
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: "OK")
         alert.runModal()
     }
 
@@ -191,7 +191,7 @@ class StatusBarController {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: "OK")
         alert.runModal()
     }
 }

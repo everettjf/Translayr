@@ -155,9 +155,9 @@ class AccessibilityMonitor: ObservableObject {
             return
         }
 
-        // Check app whitelist
-        if !isAppWhitelisted(appName) {
-            print("⚠️ [AccessibilityMonitor] App '\(appName)' not in whitelist, skipping")
+        // Check app skip list
+        if isAppInSkipList(appName) {
+            print("⚠️ [AccessibilityMonitor] App '\(appName)' is in skip list, skipping")
             // Clear current text if we're skipping this app
             if currentText != "" {
                 currentText = ""
@@ -427,21 +427,21 @@ class AccessibilityMonitor: ObservableObject {
         }
     }
 
-    // MARK: - App Whitelist（应用白名单）
+    // MARK: - App Skip List（应用跳过列表）
 
-    /// 检查应用是否在白名单中
+    /// 检查应用是否在跳过列表中
     /// - Parameter appName: 应用名称
-    /// - Returns: 如果白名单为空或应用在白名单中返回 true，否则返回 false
-    private func isAppWhitelisted(_ appName: String) -> Bool {
-        let whitelistString = UserDefaults.standard.string(forKey: "appWhitelist") ?? ""
-        let whitelist = whitelistString.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
+    /// - Returns: 如果应用在跳过列表中返回 true，否则返回 false
+    private func isAppInSkipList(_ appName: String) -> Bool {
+        let skipListString = UserDefaults.standard.string(forKey: "appSkipList") ?? ""
+        let skipList = skipListString.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }
 
-        // If whitelist is empty, allow all apps
-        if whitelist.isEmpty || (whitelist.count == 1 && whitelist[0].isEmpty) {
-            return true
+        // If skip list is empty, don't skip any apps
+        if skipList.isEmpty || (skipList.count == 1 && skipList[0].isEmpty) {
+            return false
         }
 
-        // Check if app is in whitelist (case-insensitive)
-        return whitelist.contains { $0.lowercased() == appName.lowercased() }
+        // Check if app is in skip list (case-insensitive)
+        return skipList.contains { $0.lowercased() == appName.lowercased() }
     }
 }

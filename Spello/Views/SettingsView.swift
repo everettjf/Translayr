@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @AppStorage("selectedModel") private var selectedModel = "qwen2.5:3b"
-    @AppStorage("appWhitelist") private var appWhitelistString = ""
+    @AppStorage("appSkipList") private var appSkipListString = ""
 
     @State private var newAppName = ""
     @Environment(\.dismiss) private var dismiss
@@ -22,12 +22,12 @@ struct SettingsView: View {
         "qwen2.5:7b": "Qwen 2.5 (7B) - High Quality"
     ]
 
-    var appWhitelist: [String] {
+    var appSkipList: [String] {
         get {
-            appWhitelistString.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+            appSkipListString.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
         }
         set {
-            appWhitelistString = newValue.joined(separator: ",")
+            appSkipListString = newValue.joined(separator: ",")
         }
     }
 
@@ -90,19 +90,19 @@ struct SettingsView: View {
                     .background(Color(NSColor.controlBackgroundColor).opacity(0.3))
                     .cornerRadius(12)
 
-                    // App Whitelist Section
+                    // App Skip List Section
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("App Whitelist", systemImage: "checklist")
+                        Label("App Skip List", systemImage: "xmark.app")
                             .font(.headline)
                             .foregroundColor(.primary)
 
-                        Text("Only monitor these apps (leave empty to monitor all apps)")
+                        Text("Skip translation service for these apps")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
                         // Add new app
                         HStack {
-                            TextField("Enter app name (e.g., Safari)", text: $newAppName)
+                            TextField("Enter app name (e.g., Terminal)", text: $newAppName)
                                 .textFieldStyle(.roundedBorder)
 
                             Button("Add") {
@@ -112,12 +112,12 @@ struct SettingsView: View {
                         }
 
                         // App list
-                        if !appWhitelist.isEmpty {
+                        if !appSkipList.isEmpty {
                             VStack(spacing: 6) {
-                                ForEach(appWhitelist, id: \.self) { app in
+                                ForEach(appSkipList, id: \.self) { app in
                                     HStack {
-                                        Image(systemName: "app.fill")
-                                            .foregroundColor(.blue)
+                                        Image(systemName: "app.badge.xmark")
+                                            .foregroundColor(.orange)
                                             .font(.caption)
 
                                         Text(app)
@@ -140,14 +140,14 @@ struct SettingsView: View {
                         } else {
                             HStack {
                                 Image(systemName: "info.circle")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.green)
                                 Text("Monitoring all apps")
                                     .font(.callout)
                                     .foregroundColor(.secondary)
                             }
                             .padding(12)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.blue.opacity(0.1))
+                            .background(Color.green.opacity(0.1))
                             .cornerRadius(8)
                         }
                     }
@@ -163,18 +163,18 @@ struct SettingsView: View {
 
     private func addApp() {
         let trimmed = newAppName.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, !appWhitelist.contains(trimmed) else { return }
+        guard !trimmed.isEmpty, !appSkipList.contains(trimmed) else { return }
 
-        var current = appWhitelist
+        var current = appSkipList
         current.append(trimmed)
-        appWhitelistString = current.joined(separator: ",")
+        appSkipListString = current.joined(separator: ",")
         newAppName = ""
     }
 
     private func removeApp(_ app: String) {
-        var current = appWhitelist
+        var current = appSkipList
         current.removeAll { $0 == app }
-        appWhitelistString = current.joined(separator: ",")
+        appSkipListString = current.joined(separator: ",")
     }
 }
 
