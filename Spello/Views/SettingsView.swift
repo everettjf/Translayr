@@ -305,17 +305,24 @@ struct ModelsSettingsView: View {
                 }
             }
 
-            Section {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Ollama Required")
-                            .font(.callout.weight(.medium))
-                        Text("Make sure Ollama is running and the selected model is installed")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            Section("Ollama Setup") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .padding(.top, 2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Ollama Required")
+                                .font(.callout.weight(.medium))
+                            Text("Make sure Ollama is running and the selected model is installed. Ollama runs the local models used for translation.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Link(destination: URL(string: "https://ollama.com")!) {
+                                Label("Get Ollama", systemImage: "arrow.down.circle")
+                            }
+                        }
                     }
+
                 }
             }
         }
