@@ -280,23 +280,6 @@ struct LanguageSettingsView: View {
                 }
             }
 
-            Section("Supported Languages") {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(DetectionLanguage.allCases) { language in
-                        HStack {
-                            Image(systemName: language == selectedLanguage ? "checkmark.circle.fill" : "circle")
-                                .foregroundColor(language == selectedLanguage ? .blue : .secondary)
-                            Text(language.displayName)
-                                .font(.callout)
-                            Spacer()
-                            Text("Min \(language.minWordLength) chars")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 2)
-                    }
-                }
-            }
         }
         .formStyle(.grouped)
         .padding()
