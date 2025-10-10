@@ -2,7 +2,7 @@
 //  SpellService.swift
 //  Spello
 //
-//  Created by eevv on 9/28/25.
+//  Created by XNU on 9/28/25.
 //
 
 import Foundation

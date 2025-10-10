@@ -14,9 +14,22 @@
 		5ACBDEF62E8A12F400DD7984 /* Spello.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Spello.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5A86A7612E98D18500CA8E22 /* Exceptions for "Spello" folder in "Spello" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5ACBDEF52E8A12F400DD7984 /* Spello */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5ACBDEF82E8A12F400DD7984 /* Spello */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5A86A7612E98D18500CA8E22 /* Exceptions for "Spello" folder in "Spello" target */,
+			);
 			path = Spello;
 			sourceTree = "<group>";
 		};

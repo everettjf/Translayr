@@ -172,7 +172,7 @@ class StatusBarController {
         • AI translation (powered by Ollama)
         • Floating underline hints
 
-        © 2025 eevv
+        © 2025 XNU
         """
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
