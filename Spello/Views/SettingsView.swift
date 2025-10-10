@@ -210,6 +210,10 @@ struct ModelsSettingsView: View {
     @State private var availableModels: [Ollama.Client.ListModelsResponse.Model] = []
     @State private var isLoadingModels = false
     @State private var modelLoadError: String?
+    @State private var isPullingModel = false
+    @State private var pullStatusMessage: String?
+    @State private var pullStatusIsError = false
+    @State private var currentPullModelName: String?
 
     private static let byteFormatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
@@ -230,12 +234,7 @@ struct ModelsSettingsView: View {
         return formatter
     }()
 
-    private let recommendations: [String: String] = [
-        "qwen2.5:3b": "Fast & lightweight",
-        "llama3.2:3b": "Balanced quality",
-        "gemma2:2b": "Ultra lightweight",
-        "qwen2.5:7b": "High accuracy"
-    ]
+    private let recommendedStarterModel = "qwen2.5:3b"
 
     var body: some View {
         Form {
@@ -266,13 +265,16 @@ struct ModelsSettingsView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .disabled(isLoadingModels)
+                        .disabled(isLoadingModels || isPullingModel)
                     }
                 } else if availableModels.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("No local models detected")
                             .font(.callout.weight(.medium))
                         Text("Run `ollama pull <model>` to install a model, then refresh.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("Download \(recommendedStarterModel) to get started quickly.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Button {
@@ -282,7 +284,18 @@ struct ModelsSettingsView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .disabled(isLoadingModels)
+                        .disabled(isLoadingModels || isPullingModel)
+
+                        if !availableModels.contains(where: { $0.name == recommendedStarterModel }) {
+                            Button {
+                                Task { await pullModel(named: recommendedStarterModel) }
+                            } label: {
+                                Label("Download \(recommendedStarterModel)", systemImage: "arrow.down.circle")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(isLoadingModels || isPullingModel)
+                        }
                     }
                 } else {
                     Picker("Default model", selection: $selectedModel) {
@@ -294,14 +307,27 @@ struct ModelsSettingsView: View {
                     .pickerStyle(.radioGroup)
                     .labelsHidden()
 
-                    Button {
-                        Task { await refreshModels(force: true) }
-                    } label: {
-                        Label("Refresh Models", systemImage: "arrow.clockwise")
+                    HStack(spacing: 12) {
+                        Button {
+                            Task { await refreshModels(force: true) }
+                        } label: {
+                            Label("Refresh Models", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .disabled(isLoadingModels || isPullingModel)
+
+                        if !availableModels.contains(where: { $0.name == selectedModel }) {
+                            Button {
+                                Task { await pullModel(named: selectedModel) }
+                            } label: {
+                                Label("Download \(selectedModel)", systemImage: "arrow.down.circle")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(isLoadingModels || isPullingModel)
+                        }
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(isLoadingModels)
                 }
             }
 
@@ -319,6 +345,17 @@ struct ModelsSettingsView: View {
                                 .foregroundColor(.secondary)
                             Link(destination: URL(string: "https://ollama.com")!) {
                                 Label("Get Ollama", systemImage: "arrow.down.circle")
+                            }
+                            if isPullingModel {
+                                HStack(spacing: 8) {
+                                    ProgressView()
+                                    Text("Downloading \(currentPullModelName ?? "model")…")
+                                        .font(.caption.weight(.medium))
+                                }
+                            } else if let pullStatusMessage {
+                                Text(pullStatusMessage)
+                                    .font(.caption)
+                                    .foregroundColor(pullStatusIsError ? .red : .green)
                             }
                         }
                     }
@@ -375,14 +412,67 @@ struct ModelsSettingsView: View {
         }
     }
 
+    @MainActor
+    private func pullModel(named name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !isPullingModel else { return }
+
+        guard let hostURL = URL(string: "\(OllamaConfig.host):\(OllamaConfig.port)") else {
+            pullStatusMessage = "Invalid Ollama host configuration."
+            pullStatusIsError = true
+            return
+        }
+
+        guard let modelID = Ollama.Model.ID(rawValue: trimmed) else {
+            pullStatusMessage = "Invalid model identifier: \(trimmed)."
+            pullStatusIsError = true
+            return
+        }
+
+        isPullingModel = true
+        currentPullModelName = trimmed
+        pullStatusMessage = "Downloading \(trimmed)…"
+        pullStatusIsError = false
+        modelLoadError = nil
+
+        defer {
+            isPullingModel = false
+            currentPullModelName = nil
+        }
+
+        do {
+            let client = Ollama.Client(host: hostURL)
+            let success = try await client.pullModel(modelID)
+
+            if success {
+                await refreshModels(force: true)
+                if availableModels.contains(where: { $0.name == trimmed }) {
+                    selectedModel = trimmed
+                }
+                pullStatusMessage = "Model \(trimmed) downloaded successfully."
+                pullStatusIsError = false
+            } else {
+                pullStatusMessage = "Failed to download \(trimmed)."
+                pullStatusIsError = true
+            }
+        } catch {
+            let message: String
+            if let clientError = error as? Ollama.Client.Error {
+                message = clientError.description
+            } else {
+                message = error.localizedDescription
+            }
+            pullStatusMessage = message
+            pullStatusIsError = true
+            print("⚠️ Failed to pull model \(trimmed): \(error)")
+        }
+    }
+
     private func displayName(for model: Ollama.Client.ListModelsResponse.Model) -> String {
         var components: [String] = []
 
         components.append(model.name)
-
-        if let hint = recommendations[model.name] {
-            components.append(hint)
-        }
 
         let sizeString = Self.byteFormatter.string(fromByteCount: model.size)
         components.append(sizeString)
@@ -417,8 +507,6 @@ struct SkipAppsSettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Header
             VStack(alignment: .leading, spacing: 8) {
-                Text("Skip Apps")
-                    .font(.title2.weight(.bold))
                 Text("Skip translation service for these applications")
                     .font(.callout)
                     .foregroundColor(.secondary)
