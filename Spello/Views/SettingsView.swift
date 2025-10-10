@@ -237,6 +237,8 @@ struct ModelsSettingsView: View {
     private let recommendedStarterModel = "qwen2.5:3b"
 
     var body: some View {
+        let hasLocalModels = !availableModels.isEmpty
+
         Form {
             Section {
                 Text("Select the AI model for Chinese to English translation")
@@ -334,17 +336,17 @@ struct ModelsSettingsView: View {
             Section("Ollama Setup") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
+                        Image(systemName: hasLocalModels ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                            .foregroundColor(hasLocalModels ? .green : .orange)
                             .padding(.top, 2)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Ollama Required")
+                            Text(hasLocalModels ? "Ollama Installed" : "Ollama Required")
                                 .font(.callout.weight(.medium))
                             Text("Make sure Ollama is running and the selected model is installed. Ollama runs the local models used for translation.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Link(destination: URL(string: "https://ollama.com")!) {
-                                Label("Get Ollama", systemImage: "arrow.down.circle")
+                                Text("https://ollama.com")
                             }
                             if isPullingModel {
                                 HStack(spacing: 8) {
