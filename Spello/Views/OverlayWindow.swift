@@ -324,8 +324,8 @@ class OverlayWindowManager {
         currentTranslationPopup = nil
 
         // 创建翻译弹窗（使用新的尺寸）
-        let popupWidth: CGFloat = 320
-        let popupHeight: CGFloat = 240
+        let popupWidth: CGFloat = 280
+        let popupHeight: CGFloat = 200
 
         // 计算弹窗位置（在文字下方，增加间距使其更靠下）
         var popupX = textBounds.origin.x
@@ -360,7 +360,7 @@ class OverlayWindowManager {
         )
 
         // 窗口配置
-        popupPanel.level = .floating
+        popupPanel.level = .popUpMenu  // 使用更高的层级，确保在下划线之上
         popupPanel.isMovableByWindowBackground = false
         popupPanel.hidesOnDeactivate = true  // 失去焦点时自动隐藏
         popupPanel.isOpaque = false
@@ -406,53 +406,49 @@ struct TranslationPopupView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header with gradient
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    Image(systemName: "character.book.closed.fill")
-                        .font(.title3)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
+            HStack(spacing: 6) {
+                Image(systemName: "character.book.closed.fill")
+                    .font(.body)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [.blue, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
+                    )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("翻译")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("翻译")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.primary)
 
-                        Text(originalText)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer()
-
-                    // 关闭按钮
-                    Button(action: {
-                        OverlayWindowManager.shared.closeTranslationPopup()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title3)
-                            .foregroundStyle(.tertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .onHover { hovering in
-                        if hovering {
-                            NSCursor.pointingHand.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
+                    Text(originalText)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
 
                 Spacer()
+
+                // 关闭按钮
+                Button(action: {
+                    OverlayWindowManager.shared.closeTranslationPopup()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.body)
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(
                 LinearGradient(
                     colors: [
@@ -468,15 +464,15 @@ struct TranslationPopupView: View {
 
             // Translations list
             if translations.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: 8) {
                     Spacer()
 
                     ProgressView()
-                        .scaleEffect(0.8)
+                        .scaleEffect(0.7)
                         .progressViewStyle(.circular)
 
                     Text("正在翻译...")
-                        .font(.callout)
+                        .font(.caption)
                         .foregroundColor(.secondary)
 
                     Spacer()
@@ -484,7 +480,7 @@ struct TranslationPopupView: View {
                 .frame(maxWidth: .infinity)
             } else {
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 3) {
                         ForEach(Array(translations.enumerated()), id: \.offset) { index, translation in
                             TranslationRow(
                                 translation: translation,
@@ -496,19 +492,19 @@ struct TranslationPopupView: View {
                             )
                         }
                     }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 8)
                 }
             }
         }
-        .frame(width: 320, height: 240)
+        .frame(width: 280, height: 200)
         .background(Color(NSColor.windowBackgroundColor))
-        .cornerRadius(10)
+        .cornerRadius(8)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 8)
                 .strokeBorder(Color.primary.opacity(0.2), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.2), radius: 16, x: 0, y: 8)
+        .shadow(color: .black.opacity(0.2), radius: 12, x: 0, y: 6)
     }
 }
 
@@ -522,10 +518,10 @@ struct TranslationRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 // Translation text
                 Text(translation)
-                    .font(.system(size: 14, weight: isHovered ? .medium : .regular))
+                    .font(.system(size: 13, weight: isHovered ? .medium : .regular))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -533,7 +529,7 @@ struct TranslationRow: View {
 
                 // Arrow icon with animation
                 Image(systemName: "arrow.right.circle.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundStyle(
                         LinearGradient(
                             colors: isHovered ? [.blue, .purple] : [.gray, .gray],
@@ -544,13 +540,13 @@ struct TranslationRow: View {
                     .scaleEffect(isHovered ? 1.1 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isHovered)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(isHovered ? Color.blue.opacity(0.08) : Color.clear)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: 8)
                             .strokeBorder(
                                 isHovered ? Color.blue.opacity(0.3) : Color.clear,
                                 lineWidth: 1.5
