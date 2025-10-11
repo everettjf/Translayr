@@ -10,6 +10,13 @@ import SwiftUI
 import Ollama
 
 struct AboutView: View {
+    // 动态获取应用版本信息
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        return "Version \(version) (\(build))"
+    }
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -30,7 +37,7 @@ struct AboutView: View {
                 Text("Spello")
                     .font(.largeTitle.weight(.bold))
 
-                Text("Version 1.0.0")
+                Text(appVersion)
                     .font(.title3)
                     .foregroundColor(.secondary)
             }
