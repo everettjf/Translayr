@@ -26,52 +26,58 @@ class OverlayWindow: NSWindow {
             defer: false
         )
 
-        // Make window transparent
-        self.isOpaque = false
-        self.backgroundColor = .clear
-        self.hasShadow = false
+        // 窗口透明设置
+        self.isOpaque = false              // 窗口不透明度：false = 透明
+        self.backgroundColor = .clear       // 背景色：透明
+        self.hasShadow = false             // 无阴影
 
-        // Set window level to float above other apps
+        // 窗口层级：浮动在所有其他应用之上
         self.level = .floating
 
-        // Make window appear on all spaces and above fullscreen apps
+        // 窗口行为：在所有空间显示，并可在全屏应用上方显示
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        // Don't show in window switcher
+        // 窗口不可通过背景拖动（不会在窗口切换器中显示）
         self.isMovableByWindowBackground = false
 
-        // Allow mouse events on the window
+        // 允许窗口接收鼠标事件
         self.ignoresMouseEvents = false
 
-        // Make sure window can receive mouse events
+        // 确保窗口可以接收鼠标移动事件
         self.acceptsMouseMovedEvents = true
     }
 
-    // Prevent window from becoming key or main
+    /// 阻止窗口成为主窗口（防止抢夺其他应用的焦点）
     override var canBecomeKey: Bool {
         return false
     }
 
+    /// 阻止窗口成为主窗口
     override var canBecomeMain: Bool {
         return false
     }
 
-    /// Update window position and show underline
+    /// 更新窗口位置并显示下划线
+    /// - Parameters:
+    ///   - rect: 文本区域的位置和大小（Cocoa 坐标系）
+    ///   - text: 要显示下划线的文本内容
+    ///   - onClicked: 点击下划线时的回调函数
     func showUnderline(at rect: NSRect, text: String, onClicked: ((String) -> Void)? = nil) {
-        // Make the window cover the entire text area for easier clicking
-        // But draw the underline at the bottom
+        // 让窗口覆盖整个文本区域，方便用户点击
+        // 但下划线只绘制在底部
         let clickableRect = NSRect(
             x: rect.origin.x,
             y: rect.origin.y,
             width: rect.width,
-            height: rect.height // Use full text height for clickable area
+            height: rect.height // 使用完整的文本高度作为可点击区域
         )
 
+        // 设置窗口位置和大小
         self.setFrame(clickableRect, display: true)
 
-        // Create or update underline view with full text area
+        // 创建或更新下划线视图
         if let underlineView = self.contentView as? UnderlineView {
-            // Update existing view
+            // 更新已存在的视图
             underlineView.text = text
             if let onClicked = onClicked {
                 underlineView.onClicked = onClicked
@@ -79,20 +85,22 @@ class OverlayWindow: NSWindow {
             let newSize = NSSize(width: clickableRect.width, height: clickableRect.height)
             if underlineView.frame.size != newSize {
                 underlineView.setFrameSize(newSize)
-                underlineView.updateTrackingAreas()
+                underlineView.updateTrackingAreas() // 更新鼠标追踪区域
             }
-            underlineView.needsDisplay = true
+            underlineView.needsDisplay = true // 标记需要重绘
         } else {
-            // Create new view
+            // 创建新视图
             let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: clickableRect.width, height: clickableRect.height))
             underlineView.text = text
             underlineView.onClicked = onClicked
             self.contentView = underlineView
         }
 
+        // 无论如何都将窗口置于最前面
         self.orderFrontRegardless()
     }
 
+    /// 隐藏窗口
     func hide() {
         self.orderOut(nil)
     }
@@ -124,7 +132,10 @@ class UnderlineView: NSView {
         setupTrackingArea()
     }
 
+    /// 设置鼠标追踪区域（用于检测鼠标进入和离开）
     private func setupTrackingArea() {
+        // mouseEnteredAndExited: 追踪鼠标进入和离开事件
+        // activeAlways: 即使应用不是活跃状态也追踪
         let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways]
         trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
         if let trackingArea = trackingArea {
@@ -132,11 +143,14 @@ class UnderlineView: NSView {
         }
     }
 
+    /// 更新鼠标追踪区域（当视图大小改变时调用）
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
+        // 移除旧的追踪区域
         if let trackingArea = trackingArea {
             removeTrackingArea(trackingArea)
         }
+        // 重新设置追踪区域
         setupTrackingArea()
     }
 
@@ -147,44 +161,48 @@ class UnderlineView: NSView {
         }
     }
 
+    /// 绘制视图内容（下划线和鼠标悬停效果）
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        // Draw semi-transparent highlight when hovering
+        // 鼠标悬停时绘制半透明蓝色高亮背景
         if isHovering {
             NSColor.systemBlue.withAlphaComponent(0.1).setFill()
             bounds.fill()
         }
 
-        // Draw red underline at the bottom of the text area
-        NSColor.red.setStroke()
+        // 在文本区域底部绘制红色下划线
+        NSColor.green.setStroke()
         let path = NSBezierPath()
 
-        // Position underline at the very bottom (2 pixels from bottom)
+        // 下划线位置：距离底部 2 像素
         let underlineY: CGFloat = 2
-        path.move(to: NSPoint(x: 0, y: underlineY))
-        path.line(to: NSPoint(x: bounds.width, y: underlineY))
-        path.lineWidth = 1
-        path.stroke()
+        path.move(to: NSPoint(x: 0, y: underlineY))           // 起点：左边
+        path.line(to: NSPoint(x: bounds.width, y: underlineY)) // 终点：右边
+        path.lineWidth = 1                                     // 线宽：1 像素
+        path.stroke()                                          // 绘制路径
     }
 
+    /// 鼠标进入视图时触发
     override func mouseEntered(with event: NSEvent) {
         print("🖱️ [UnderlineView] Mouse entered: \(text)")
-        isHovering = true
-        NSCursor.pointingHand.push()
-        needsDisplay = true
+        isHovering = true                 // 标记为悬停状态
+        NSCursor.pointingHand.push()      // 切换为手形指针
+        needsDisplay = true               // 触发重绘（显示蓝色背景）
     }
 
+    /// 鼠标离开视图时触发
     override func mouseExited(with event: NSEvent) {
         print("🖱️ [UnderlineView] Mouse exited: \(text)")
-        isHovering = false
-        NSCursor.pop()
-        needsDisplay = true
+        isHovering = false                // 取消悬停状态
+        NSCursor.pop()                    // 恢复默认指针
+        needsDisplay = true               // 触发重绘（移除蓝色背景）
     }
 
+    /// 鼠标点击视图时触发
     override func mouseDown(with event: NSEvent) {
-        // Handle click - show translation popup
         print("🖱️ [UnderlineView] Mouse down on: \(text)")
+        // 调用点击回调函数，显示翻译弹窗
         if let callback = onClicked {
             print("🖱️ [UnderlineView] Calling onClicked callback")
             callback(text)
@@ -193,28 +211,38 @@ class UnderlineView: NSView {
         }
     }
 
-    // Accept first mouse to allow clicking without activating window
+    /// 允许在不激活窗口的情况下接收第一次鼠标点击
+    /// 这样用户可以直接点击下划线，而不需要先激活 Spello 应用
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         return true
     }
 
-    // Make the entire view respond to mouse events
+    /// 让整个视图区域都能响应鼠标事件
+    /// - Parameter point: 鼠标点击的位置
+    /// - Returns: 如果点击在视图范围内，返回 self；否则返回 nil
     override func hitTest(_ point: NSPoint) -> NSView? {
-        // Return self if point is within bounds, enabling clicks anywhere in the overlay
         return bounds.contains(point) ? self : nil
     }
 }
 
-/// Manager for overlay windows
+/// 下划线窗口管理器 - 负责管理所有下划线窗口和翻译弹窗
+/// 职责：
+/// 1. 管理所有下划线窗口的创建、显示、隐藏
+/// 2. 坐标转换（Accessibility API 坐标 → Cocoa 窗口坐标）
+/// 3. 处理点击下划线时的翻译请求
+/// 4. 显示和管理翻译弹窗
 @MainActor
 class OverlayWindowManager {
+    /// 单例实例
     static let shared = OverlayWindowManager()
 
+    /// 所有下划线窗口的字典（key: "位置-长度"，value: OverlayWindow）
     private var overlayWindows: [String: OverlayWindow] = [:]
 
     /// 当前显示的翻译弹窗（强引用，防止被过早释放导致 crash）
     private var currentTranslationPopup: NSPanel?
 
+    /// 私有初始化函数（单例模式）
     private init() {}
 
     // MARK: - Public Translation Popup（公共翻译弹窗方法）
@@ -229,13 +257,19 @@ class OverlayWindowManager {
         showTranslationPopup(for: text, translations: translations, near: sourceRect, onSelect: onSelect)
     }
 
-    /// Show underline for a detected text item
+    /// 为检测到的文本项显示下划线
+    /// - Parameters:
+    ///   - item: 检测到的文本项（包含文本内容和位置范围）
+    ///   - bounds: 文本的屏幕位置（Accessibility API 坐标系）
+    ///   - element: Accessibility 元素引用
     func showUnderline(for item: DetectedTextItem, at bounds: NSRect, element: AXUIElement) {
+        // 生成窗口的唯一标识符（基于文本位置和长度）
         let key = "\(item.range.location)-\(item.range.length)"
 
-        // Accessibility API returns coordinates with origin at top-left of main screen
-        // macOS window coordinates have origin at bottom-left of main screen
-        // So we need to flip the Y coordinate
+        // 坐标系转换说明：
+        // - Accessibility API: 原点在屏幕左上角，Y 坐标向下增加
+        // - macOS Cocoa 窗口: 原点在屏幕左下角，Y 坐标向上增加
+        // 因此需要翻转 Y 坐标
         guard let mainScreen = NSScreen.main else {
             print("⚠️ Cannot get main screen")
             return
@@ -243,8 +277,8 @@ class OverlayWindowManager {
 
         let screenHeight = mainScreen.frame.height
 
-        // Convert from Accessibility coordinates (top-left origin) to Cocoa coordinates (bottom-left origin)
-        // AX Y-coordinate increases downward, Cocoa Y-coordinate increases upward
+        // 坐标转换：从 Accessibility 坐标系转换为 Cocoa 坐标系
+        // 公式：cocoaY = 屏幕高度 - axY - 文本高度
         let cocoaY = screenHeight - bounds.origin.y - bounds.size.height
 
         let screenBounds = NSRect(
@@ -259,7 +293,7 @@ class OverlayWindowManager {
         print("   Screen height: \(screenHeight)")
         print("   Cocoa bounds: \(screenBounds)")
 
-        // Define click handler
+        // 定义点击回调函数（弱引用 self 防止循环引用）
         let clickHandler: (String) -> Void = { [weak self] text in
             print("🖱️ [OverlayWindowManager] Click handler triggered for: \(text)")
             Task { @MainActor in
@@ -267,21 +301,25 @@ class OverlayWindowManager {
             }
         }
 
-        // Create or update overlay window
+        // 创建或更新下划线窗口
         if let window = overlayWindows[key] {
+            // 窗口已存在，直接更新
             window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
         } else {
+            // 创建新窗口
             let window = OverlayWindow(frame: screenBounds)
             window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
             overlayWindows[key] = window
         }
     }
 
-    /// Hide all overlay windows
+    /// 隐藏所有下划线窗口
     func hideAll() {
+        // 遍历所有窗口并隐藏
         for window in overlayWindows.values {
             window.hide()
         }
+        // 清空窗口字典
         overlayWindows.removeAll()
     }
 
@@ -291,46 +329,59 @@ class OverlayWindowManager {
         currentTranslationPopup = nil
     }
 
-    /// Handle clicking on underlined text
+    /// 处理下划线被点击的事件
+    /// - Parameters:
+    ///   - text: 被点击的文本内容
+    ///   - item: 检测到的文本项
+    ///   - bounds: 文本的屏幕位置（Cocoa 坐标系）
     private func handleTextClicked(_ text: String, item: DetectedTextItem, bounds: NSRect) async {
         print("🔄 Getting translations for: \(text)")
 
-        // Get translations from SpellCheckMonitor
+        // 从 SpellCheckMonitor 获取翻译结果
         let translation = await SpellCheckMonitor.shared.translateItem(item)
         let translations = translation.isEmpty ? [] : [translation]
 
-        // Show translation popup near the clicked text
+        // 在点击的文本附近显示翻译弹窗
         showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
-            // 在外部应用中替换文本
+            // 用户选择翻译后，在外部应用中替换文本
             self?.replaceTextInExternalApp(item: item, with: translation)
         }
     }
 
     /// 在外部应用中替换文本
+    /// - Parameters:
+    ///   - item: 要替换的文本项
+    ///   - translation: 翻译后的文本
     private func replaceTextInExternalApp(item: DetectedTextItem, with translation: String) {
         print("🔄 Replacing '\(item.text)' with '\(translation)' in external app")
 
-        // 使用 AccessibilityMonitor 替换文本
+        // 使用 AccessibilityMonitor 在外部应用中替换文本
         AccessibilityMonitor.shared.replaceText(in: item.range, with: translation)
 
-        // 隐藏所有 overlay（文本已改变，旧的下划线位置不再有效）
+        // 隐藏所有下划线（因为文本已改变，旧的下划线位置不再有效）
         hideAll()
 
         // AccessibilityMonitor 的定时器会自动检测到新文本并重新显示下划线
     }
 
+    /// 显示翻译弹窗
+    /// - Parameters:
+    ///   - text: 原文本
+    ///   - translations: 翻译候选列表
+    ///   - textBounds: 文本的屏幕位置（Cocoa 坐标系）
+    ///   - onSelect: 用户选择翻译时的回调函数
     private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect, onSelect: ((String) -> Void)? = nil) {
         // 关闭之前的弹窗（如果有）
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
 
-        // 创建翻译弹窗（使用新的尺寸）
+        // 定义弹窗尺寸
         let popupWidth: CGFloat = 200
         let popupHeight: CGFloat = 150
 
-        // 计算弹窗位置（在文字下方，增加间距使其更靠下）
+        // 计算弹窗位置（默认在文字下方，间距 30 像素）
         var popupX = textBounds.origin.x
-        var popupY = textBounds.origin.y - popupHeight - 30 // 增加间距从 10 到 30
+        var popupY = textBounds.origin.y - popupHeight - 30
 
         // 如果弹窗会超出屏幕底部，则显示在文字上方
         if popupY < 50 {
@@ -351,31 +402,30 @@ class OverlayWindowManager {
 
         let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
 
-        // 使用无边框的 NSPanel，实现现代化的浮动窗口效果
-        // NSPanel 更适合临时弹窗，失去焦点时会自动隐藏
+        // 创建 NSPanel（更适合临时弹窗，失去焦点时会自动隐藏）
         let popupPanel = NSPanel(
             contentRect: popupFrame,
-            styleMask: [.borderless, .nonactivatingPanel],  // 无边框设计
+            styleMask: [.borderless, .nonactivatingPanel],  // 无边框、不激活窗口
             backing: .buffered,
             defer: false
         )
 
         // 窗口配置
-        popupPanel.level = .popUpMenu  // 使用更高的层级，确保在下划线之上
-        popupPanel.isMovableByWindowBackground = false
-        popupPanel.hidesOnDeactivate = true  // 失去焦点时自动隐藏
-        popupPanel.isOpaque = false
-        popupPanel.backgroundColor = .clear
-        popupPanel.hasShadow = false  // 使用 SwiftUI 的阴影
+        popupPanel.level = .popUpMenu              // 使用弹出菜单级别，确保在下划线之上
+        popupPanel.isMovableByWindowBackground = false  // 不可通过背景拖动
+        popupPanel.hidesOnDeactivate = true        // 失去焦点时自动隐藏
+        popupPanel.isOpaque = false                // 透明窗口
+        popupPanel.backgroundColor = .clear        // 无背景色
+        popupPanel.hasShadow = false               // 不使用系统阴影（使用 SwiftUI 阴影）
 
-        // 创建 SwiftUI 视图
+        // 创建 SwiftUI 视图内容
         let translationsView = TranslationPopupView(
             originalText: text,
             translations: translations,
             onSelect: { [weak self] translation in
                 print("✅ Selected translation: \(translation)")
 
-                // 调用外部回调（如果有）
+                // 调用外部回调函数（如果有）
                 onSelect?(translation)
 
                 // 关闭弹窗
@@ -384,11 +434,13 @@ class OverlayWindowManager {
             }
         )
 
+        // 将 SwiftUI 视图设置为窗口内容
         popupPanel.contentView = NSHostingView(rootView: translationsView)
 
-        // 强引用持有窗口，防止被过早释放
+        // 强引用持有窗口，防止被过早释放导致 crash
         currentTranslationPopup = popupPanel
 
+        // 显示窗口
         popupPanel.makeKeyAndOrderFront(nil)
 
         print("🪟 [OverlayWindowManager] Showing popup at \(popupFrame)")
