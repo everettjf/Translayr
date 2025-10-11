@@ -1,8 +1,8 @@
-# Spello - macOS 智能拼写检查和翻译工具
+# Translayr - macOS 智能拼写检查和翻译工具
 
 ## 项目概述
 
-Spello 是一款专为 macOS 设计的智能拼写检查和翻译应用程序。它利用 macOS 系统的原生拼写检查能力，并集成了本地 AI 模型（通过 Ollama）来提供更智能的拼写建议和翻译功能。
+Translayr 是一款专为 macOS 设计的智能拼写检查和翻译应用程序。它利用 macOS 系统的原生拼写检查能力，并集成了本地 AI 模型（通过 Ollama）来提供更智能的拼写建议和翻译功能。
 
 ### 核心功能
 
@@ -166,7 +166,7 @@ applyReplacement() → 应用到文本
 git clone <repository-url>
 
 # 打开项目
-open Spello.xcodeproj
+open Translayr.xcodeproj
 
 # 构建并运行
 ⌘ + R

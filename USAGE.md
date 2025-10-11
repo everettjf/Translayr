@@ -1,10 +1,10 @@
-# Spello 使用指南
+# Translayr 使用指南
 
 ## 🚀 快速开始
 
 ### 1. 启动 Ollama
 
-在使用 Spello 之前，请确保 Ollama 服务正在运行：
+在使用 Translayr 之前，请确保 Ollama 服务正在运行：
 
 ```bash
 # 启动 Ollama 服务
@@ -16,7 +16,7 @@ curl http://127.0.0.1:11434/api/tags
 
 如果看到 JSON 响应，说明 Ollama 已经正常运行。
 
-### 2. 运行 Spello
+### 2. 运行 Translayr
 
 在 Xcode 中打开项目并运行（⌘ + R），或者运行已编译的应用。
 
@@ -110,7 +110,7 @@ Generated 5 translation suggestions
 
 ### 修改默认模型
 
-编辑 `Spello/Services/OllamaConfig.swift`:
+编辑 `Translayr/Services/OllamaConfig.swift`:
 
 ```swift
 struct OllamaConfig {
@@ -126,7 +126,7 @@ struct OllamaConfig {
 
 ### 修改默认文本
 
-编辑 `Spello/ContentView.swift`:
+编辑 `Translayr/ContentView.swift`:
 
 ```swift
 @State private var text = """
@@ -249,7 +249,7 @@ Ollama error: ...
 
 ## 🎯 最佳实践
 
-1. **保持 Ollama 运行**: 在使用 Spello 期间始终保持 Ollama 运行
+1. **保持 Ollama 运行**: 在使用 Translayr 期间始终保持 Ollama 运行
 2. **选择合适的模型**: 根据需求选择模型大小和质量的平衡
 3. **检查翻译结果**: AI 翻译可能不完美，请检查并调整
 4. **利用上下文**: 使用上下文信息判断翻译是否准确

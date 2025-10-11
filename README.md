@@ -1,4 +1,4 @@
-# Spello - 系统级智能翻译助手
+# Translayr - 系统级智能翻译助手
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" />
@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Ollama-Local%20AI-green.svg" />
 </p>
 
-Spello 是一款专为 macOS 设计的**系统级智能翻译助手**。它能实时监控任何应用中的文本输入，自动检测多种语言并提供即时翻译。通过结合 macOS Accessibility API 和本地 AI 模型（Ollama），Spello 为用户提供了一个强大、私密且流畅的跨应用翻译体验。
+Translayr 是一款专为 macOS 设计的**系统级智能翻译助手**。它能实时监控任何应用中的文本输入，自动检测多种语言并提供即时翻译。通过结合 macOS Accessibility API 和本地 AI 模型（Ollama），Translayr 为用户提供了一个强大、私密且流畅的跨应用翻译体验。
 
 ## ✨ 核心特性
 
@@ -73,27 +73,27 @@ ollama pull gemma2:2b       # 备选：超轻量级
 ollama serve
 ```
 
-### 2. 构建并运行 Spello
+### 2. 构建并运行 Translayr
 
 ```bash
 # 克隆项目
 git clone <your-repo-url>
-cd Spello
+cd Translayr
 
 # 在 Xcode 中打开项目
-open Spello.xcodeproj
+open Translayr.xcodeproj
 
 # 在 Xcode 中按 ⌘ + R 运行
 ```
 
 ### 3. 授予辅助功能权限
 
-首次运行时，Spello 会请求辅助功能权限：
+首次运行时，Translayr 会请求辅助功能权限：
 
 1. 系统会自动弹出权限请求对话框
 2. 点击 "Open System Settings"
-3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中启用 Spello
-4. 重启 Spello 以激活监控功能
+3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中启用 Translayr
+4. 重启 Translayr 以激活监控功能
 
 ### 4. 开始使用
 
@@ -103,13 +103,13 @@ open Spello.xcodeproj
    ```
 
 2. **在设置中配置语言**
-   - 点击菜单栏中的 Spello 图标
+   - 点击菜单栏中的 Translayr 图标
    - 选择 "Settings"
    - 在 "Language" 标签中选择源语言和目标语言
 
 3. **在任何应用中输入文本**
    - 在支持的应用中输入或粘贴文本
-   - Spello 会自动检测目标语言并显示下划线
+   - Translayr 会自动检测目标语言并显示下划线
    - 点击下划线查看翻译
    - 点击翻译结果即可替换原文
 
@@ -182,9 +182,9 @@ Xcode, Terminal, iTerm, 1Password
 ## 🏗️ 项目架构
 
 ```
-Spello/
-├── Spello/
-│   ├── SpelloApp.swift              # 应用入口，菜单栏集成
+Translayr/
+├── Translayr/
+│   ├── TranslayrApp.swift              # 应用入口，菜单栏集成
 │   ├── ContentView.swift            # 主界面
 │   │
 │   ├── Models/
@@ -217,7 +217,7 @@ Spello/
 │   │
 │   └── Info.plist                   # 应用配置
 │
-├── SpelloTests/                     # 单元测试
+├── TranslayrTests/                     # 单元测试
 ├── README.md                        # 项目说明（本文件）
 ├── DOCUMENT.md                      # 详细文档
 ├── USAGE.md                         # 使用指南
@@ -252,13 +252,13 @@ UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 
 ### 问题 1: 无法监控其他应用的文本
 
-**症状**: Spello 运行中但没有检测到其他应用的文本
+**症状**: Translayr 运行中但没有检测到其他应用的文本
 
 **解决方案**:
 1. 确认已授予辅助功能权限
-   - 系统设置 → 隐私与安全性 → 辅助功能 → 启用 Spello
+   - 系统设置 → 隐私与安全性 → 辅助功能 → 启用 Translayr
 2. 尝试重启目标应用
-3. 尝试重启 Spello
+3. 尝试重启 Translayr
 4. 检查目标应用是否在跳过列表中
 
 ### 问题 2: Ollama 连接失败
@@ -289,7 +289,7 @@ UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 **症状**: 下划线没有对齐到文本下方
 
 **解决方案**:
-- Spello 会自动跟踪窗口移动和调整大小
+- Translayr 会自动跟踪窗口移动和调整大小
 - 如果位置仍不准确，尝试在该应用中重新输入文本
 - 某些应用可能不支持精确的文本位置 API
 
@@ -375,7 +375,7 @@ UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 
 在创建 Issue 时，请提供：
 - macOS 版本
-- Spello 版本
+- Translayr 版本
 - Ollama 版本和模型
 - 详细的问题描述和复现步骤
 - 相关的日志输出（如有）
@@ -400,4 +400,4 @@ UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 
 **Made with ❤️ for macOS**
 
-如果觉得 Spello 有用，请给个 ⭐️ Star！
+如果觉得 Translayr 有用，请给个 ⭐️ Star！

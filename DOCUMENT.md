@@ -1,8 +1,8 @@
-# Spello 技术文档
+# Translayr 技术文档
 
 ## 项目概述
 
-Spello 是一个 macOS 应用程序，能够实时监控其他应用中的中文文本，并提供 AI 翻译功能。用户可以在任何应用中输入中文，Spello 会自动检测并在文字下方显示红色下划线，点击后可查看英文翻译建议。
+Translayr 是一个 macOS 应用程序，能够实时监控其他应用中的中文文本，并提供 AI 翻译功能。用户可以在任何应用中输入中文，Translayr 会自动检测并在文字下方显示红色下划线，点击后可查看英文翻译建议。
 
 ## 核心功能
 
@@ -170,7 +170,7 @@ let stream = ollamaClient.generateStream(
 ### 1. 启动流程
 
 ```
-用户打开 Spello
+用户打开 Translayr
     ↓
 检查 Accessibility 权限
     ↓

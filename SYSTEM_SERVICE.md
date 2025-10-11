@@ -1,8 +1,8 @@
-# Spello 系统级服务使用指南
+# Translayr 系统级服务使用指南
 
 ## 🌟 什么是系统服务？
 
-Spello 现在提供 **macOS 系统级服务**，允许你在任何支持文本选择的应用中使用 Spello 的翻译功能，包括：
+Translayr 现在提供 **macOS 系统级服务**，允许你在任何支持文本选择的应用中使用 Translayr 的翻译功能，包括：
 
 - **Notes** (备忘录)
 - **TextEdit** (文本编辑)
@@ -14,13 +14,13 @@ Spello 现在提供 **macOS 系统级服务**，允许你在任何支持文本�
 
 ## 🚀 快速开始
 
-### 1. 启动 Spello 应用
+### 1. 启动 Translayr 应用
 
-首先运行 Spello 应用一次，这会注册系统服务：
+首先运行 Translayr 应用一次，这会注册系统服务：
 
 ```bash
 # 在 Xcode 中运行，或者
-open /path/to/Spello.app
+open /path/to/Translayr.app
 ```
 
 ### 2. 刷新系统服务（首次使用）
@@ -40,7 +40,7 @@ killall SystemUIServer
 
 ### 3. 开始使用
 
-现在你可以在任何应用中使用 Spello 服务了！
+现在你可以在任何应用中使用 Translayr 服务了！
 
 ## 📝 使用方法
 
@@ -48,26 +48,26 @@ killall SystemUIServer
 
 1. 在任何应用中选择中文文本
 2. 右键点击选中的文本
-3. 在菜单中找到 **Services** (服务) > **Spello**
+3. 在菜单中找到 **Services** (服务) > **Translayr**
 4. 选择你需要的服务：
-   - **Translate to English (Spello)** - 直接翻译替换
-   - **Get Translation Suggestions (Spello)** - 获取多个翻译建议
+   - **Translate to English (Translayr)** - 直接翻译替换
+   - **Get Translation Suggestions (Translayr)** - 获取多个翻译建议
 
 ### 方法 2: 菜单栏
 
 1. 选择文本
 2. 点击应用菜单栏
 3. 找到 **Services** (或应用名称 > Services)
-4. 选择 Spello 服务
+4. 选择 Translayr 服务
 
 ### 方法 3: 键盘快捷键（可选）
 
-你可以为 Spello 服务设置快捷键：
+你可以为 Translayr 服务设置快捷键：
 
 1. 打开 **System Settings** (系统设置)
 2. 进入 **Keyboard** (键盘) > **Keyboard Shortcuts** (键盘快捷键)
 3. 选择 **Services** (服务)
-4. 找到 **Spello** 相关服务
+4. 找到 **Translayr** 相关服务
 5. 点击右侧添加快捷键（建议 `⌘⇧T`）
 
 ## 🎯 实际使用示例
@@ -80,7 +80,7 @@ killall SystemUIServer
    人工智能正在改变世界
    ```
 3. 选中文本
-4. 右键 > Services > **Translate to English (Spello)**
+4. 右键 > Services > **Translate to English (Translayr)**
 5. 文本会被替换为：
    ```
    Artificial intelligence is changing the world
@@ -94,7 +94,7 @@ killall SystemUIServer
    机器学习
    ```
 3. 选中文本
-4. 右键 > Services > **Get Translation Suggestions (Spello)**
+4. 右键 > Services > **Get Translation Suggestions (Translayr)**
 5. 文本会被替换为翻译建议列表：
    ```
    machine learning
@@ -103,7 +103,7 @@ killall SystemUIServer
 ### 示例 3: 在浏览器中使用
 
 1. 在 Safari 的任何网页上选择中文文本
-2. 右键 > Services > Spello
+2. 右键 > Services > Translayr
 3. 翻译结果会替换选中的文本
 
 ## 🔍 验证服务是否已注册
@@ -113,7 +113,7 @@ killall SystemUIServer
 1. 打开 **System Settings** > **Keyboard** > **Keyboard Shortcuts**
 2. 点击 **Services** (服务)
 3. 滚动查找 **Text** (文本) 分类
-4. 应该能看到 Spello 的服务
+4. 应该能看到 Translayr 的服务
 
 ### 检查方法 2: 命令行
 
@@ -164,11 +164,11 @@ defaults read pbs NSServicesStatus
 
 ## 🔧 故障排除
 
-### 问题 1: 服务菜单中找不到 Spello
+### 问题 1: 服务菜单中找不到 Translayr
 
 **解决方案**:
 
-1. 确保 Spello 应用至少运行过一次
+1. 确保 Translayr 应用至少运行过一次
 2. 刷新服务缓存：
    ```bash
    killall SystemUIServer
@@ -179,7 +179,7 @@ defaults read pbs NSServicesStatus
 
 **可能原因**:
 - Ollama 未运行
-- Spello 应用未在后台运行
+- Translayr 应用未在后台运行
 - 模型未下载
 
 **解决方案**:
@@ -199,7 +199,7 @@ ollama pull qwen2.5:3b
 **解决方案**:
 1. 第一次翻译会慢一些（加载模型）
 2. 使用更小的模型：`gemma2:2b`
-3. 确保 Spello 应用保持打开状态
+3. 确保 Translayr 应用保持打开状态
 
 ### 问题 4: 某些应用不显示服务
 
@@ -221,12 +221,12 @@ ollama pull qwen2.5:3b
 
 ### 与其他工具结合
 
-可以创建 Automator 工作流，将 Spello 服务与其他操作结合：
+可以创建 Automator 工作流，将 Translayr 服务与其他操作结合：
 
 1. 打开 **Automator**
 2. 创建新的 **Quick Action** (快速操作)
 3. 添加 **Run Service** 操作
-4. 选择 Spello 服务
+4. 选择 Translayr 服务
 5. 添加后续操作（如复制到剪贴板）
 
 ### 使用 AppleScript 调用
@@ -248,7 +248,7 @@ end tell
 
 ### 优化响应速度
 
-1. **保持 Spello 运行**: 不要关闭应用
+1. **保持 Translayr 运行**: 不要关闭应用
 2. **预热模型**: 启动后先翻译一次
 3. **使用轻量模型**: `gemma2:2b` 或 `qwen2.5:3b`
 4. **避免大文本**: 分段处理长文本
@@ -263,7 +263,7 @@ end tell
 
 ## 🎓 最佳实践
 
-1. **保持 Spello 和 Ollama 运行**: 获得最佳性能
+1. **保持 Translayr 和 Ollama 运行**: 获得最佳性能
 2. **先测试小文本**: 确保服务正常工作
 3. **设置快捷键**: 提高使用效率
 4. **定期更新模型**: 获得更好的翻译质量
@@ -280,7 +280,7 @@ end tell
 
 ### 权限要求
 
-Spello 需要以下权限：
+Translayr 需要以下权限：
 - **网络客户端**: 连接本地 Ollama (127.0.0.1)
 - **读取选中文本**: 从其他应用获取文本
 - **写入文本**: 替换翻译结果
@@ -291,7 +291,7 @@ Spello 需要以下权限：
 
 ### NSServices 实现
 
-Spello 使用 macOS NSServices 框架实现系统级服务：
+Translayr 使用 macOS NSServices 框架实现系统级服务：
 
 - **服务提供者**: `SystemServiceProvider` 类
 - **服务方法**:
@@ -307,7 +307,7 @@ Spello 使用 macOS NSServices 框架实现系统级服务：
     ↓
 系统调用服务
     ↓
-Spello 从 Pasteboard 读取文本
+Translayr 从 Pasteboard 读取文本
     ↓
 Ollama 进行翻译
     ↓
@@ -320,13 +320,13 @@ Ollama 进行翻译
 
 如果遇到问题：
 
-1. 查看 Spello 应用的控制台输出（调试信息）
-2. 检查系统日志：Console.app > 搜索 "Spello"
+1. 查看 Translayr 应用的控制台输出（调试信息）
+2. 检查系统日志：Console.app > 搜索 "Translayr"
 3. 参考 README.md 和 USAGE.md
 4. 创建 GitHub Issue
 
 ## 🎉 享受使用！
 
-现在你可以在整个 macOS 系统中使用 Spello 的翻译功能了！
+现在你可以在整个 macOS 系统中使用 Translayr 的翻译功能了！
 
 试试在不同的应用中选择中文文本，体验无缝的翻译体验吧！
