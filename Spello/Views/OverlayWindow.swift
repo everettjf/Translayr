@@ -171,8 +171,9 @@ class UnderlineView: NSView {
             bounds.fill()
         }
 
-        // 在文本区域底部绘制红色下划线
-        NSColor.green.setStroke()
+        // 在文本区域底部绘制下划线（使用用户配置的颜色）
+        let underlineColor = ColorConfig.underlineColor.nsColor
+        underlineColor.setStroke()
         let path = NSBezierPath()
 
         // 下划线位置：距离底部 2 像素
