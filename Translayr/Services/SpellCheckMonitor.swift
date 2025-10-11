@@ -163,9 +163,17 @@ class SpellCheckMonitor: ObservableObject {
     private func detectSentences(in text: String, language: Language) -> [DetectedTextItem] {
         var sentences: [DetectedTextItem] = []
         let nsText = text as NSString
+        let textLength = nsText.length
 
         // 句子结束符：句号、问号、叹号
-        let sentenceEnders: Set<Character> = ["。", ".", "？", "?", "！", "!"]
+        let sentenceEnders: Set<unichar> = [
+            unichar("。".utf16.first!),
+            unichar(".".utf16.first!),
+            unichar("？".utf16.first!),
+            unichar("?".utf16.first!),
+            unichar("！".utf16.first!),
+            unichar("!".utf16.first!)
+        ]
 
         // 创建语言字符检测的正则表达式
         guard let languageRegex = try? NSRegularExpression(pattern: "[\(language.unicodePattern)]", options: []) else {
@@ -176,10 +184,9 @@ class SpellCheckMonitor: ObservableObject {
         var parenDepth = 0  // 括号深度
         var quoteDepth = 0  // 引号深度
 
-        // 遍历每个字符
-        for i in 0..<text.count {
-            let index = text.index(text.startIndex, offsetBy: i)
-            let char = text[index]
+        // 使用NSString遍历，避免String的O(n)索引开销
+        for i in 0..<textLength {
+            let char = nsText.character(at: i)
 
             // 检查是否是目标语言字符
             let charRange = NSRange(location: i, length: 1)
@@ -191,11 +198,32 @@ class SpellCheckMonitor: ObservableObject {
             }
 
             // 更新括号和引号深度
-            if char == "(" || char == "（" || char == "[" || char == "【" {
+            let openParens: Set<unichar> = [
+                unichar("(".utf16.first!),
+                unichar("（".utf16.first!),
+                unichar("[".utf16.first!),
+                unichar("【".utf16.first!)
+            ]
+            let closeParens: Set<unichar> = [
+                unichar(")".utf16.first!),
+                unichar("）".utf16.first!),
+                unichar("]".utf16.first!),
+                unichar("】".utf16.first!)
+            ]
+            let quotes: Set<unichar> = [
+                unichar("\"".utf16.first!),
+                0x201C, // "
+                0x201D, // "
+                unichar("'".utf16.first!),
+                0x2018, // '
+                0x2019  // '
+            ]
+
+            if openParens.contains(char) {
                 parenDepth += 1
-            } else if char == ")" || char == "）" || char == "]" || char == "】" {
+            } else if closeParens.contains(char) {
                 parenDepth = max(0, parenDepth - 1)
-            } else if char == "\"" || char == "\u{201C}" || char == "\u{201D}" || char == "'" || char == "\u{2018}" || char == "\u{2019}" {
+            } else if quotes.contains(char) {
                 quoteDepth = (quoteDepth + 1) % 2
             }
 
@@ -212,7 +240,7 @@ class SpellCheckMonitor: ObservableObject {
                 // 只保留包含目标语言字符的句子
                 if !sentenceText.isEmpty {
                     // 调整范围以匹配修剪后的文本
-                    let trimmedRange = (text as NSString).range(of: sentenceText, options: [], range: NSRange(location: start, length: i - start + 1))
+                    let trimmedRange = nsText.range(of: sentenceText, options: [], range: NSRange(location: start, length: i - start + 1))
 
                     sentences.append(DetectedTextItem(
                         text: sentenceText,
@@ -227,12 +255,12 @@ class SpellCheckMonitor: ObservableObject {
 
         // 处理未结束的句子（到文本末尾）
         if let start = currentStart {
-            let sentenceRange = NSRange(location: start, length: text.count - start)
+            let sentenceRange = NSRange(location: start, length: textLength - start)
             let sentenceText = nsText.substring(with: sentenceRange)
                 .trimmingCharacters(in: .whitespaces)
 
             if !sentenceText.isEmpty {
-                let trimmedRange = (text as NSString).range(of: sentenceText, options: [], range: sentenceRange)
+                let trimmedRange = nsText.range(of: sentenceText, options: [], range: sentenceRange)
 
                 sentences.append(DetectedTextItem(
                     text: sentenceText,

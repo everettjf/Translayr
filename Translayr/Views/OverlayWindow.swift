@@ -40,11 +40,11 @@ class OverlayWindow: NSWindow {
         // 窗口不可通过背景拖动（不会在窗口切换器中显示）
         self.isMovableByWindowBackground = false
 
-        // 允许窗口接收鼠标事件
-        self.ignoresMouseEvents = false
+        // 忽略鼠标点击事件，让点击穿透到底层应用（类似Grammarly）
+        // 这样用户可以点击文字插入光标
+        self.ignoresMouseEvents = true
 
-        // 确保窗口可以接收鼠标移动事件
-        self.acceptsMouseMovedEvents = true
+        // 鼠标移动检测通过全局监听器实现，见UnderlineView
     }
 
     /// 阻止窗口成为主窗口（防止抢夺其他应用的焦点）
@@ -116,58 +116,91 @@ class OverlayWindow: NSWindow {
 /// 1. 在底部绘制红色下划线
 /// 2. 鼠标悬停时显示轻微高亮背景
 /// 3. 鼠标悬停时显示翻译弹窗
-/// 4. 响应点击事件以应用翻译
+/// 4. 点击事件穿透，不影响底层文字编辑
 class UnderlineView: NSView {
     /// 下划线对应的文本内容
     var text: String = ""
-    /// 点击回调函数
+    /// 点击回调函数（目前不使用，因为点击会穿透）
     var onClicked: ((String) -> Void)?
     /// 悬停回调函数（用于显示翻译弹窗）
     var onHovered: ((String) -> Void)?
     /// 是否鼠标悬停中
     private var isHovering = false
-    /// 鼠标追踪区域
-    private var trackingArea: NSTrackingArea?
     /// 防抖定时器 - 避免鼠标快速移动时频繁触发弹窗
     private var hoverDebounceTimer: Timer?
+    /// 全局鼠标监听器
+    private var globalMouseMonitor: Any?
+    /// 鼠标位置检查定时器
+    private var mouseCheckTimer: Timer?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setupTrackingArea()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupTrackingArea()
     }
 
-    /// 设置鼠标追踪区域（用于检测鼠标进入和离开）
-    private func setupTrackingArea() {
-        // mouseEnteredAndExited: 追踪鼠标进入和离开事件
-        // activeAlways: 即使应用不是活跃状态也追踪
-        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways]
-        trackingArea = NSTrackingArea(rect: bounds, options: options, owner: self, userInfo: nil)
-        if let trackingArea = trackingArea {
-            addTrackingArea(trackingArea)
+    /// 设置鼠标位置监控
+    private func setupMouseMonitoring() {
+        // 使用定时器定期检查鼠标位置（因为窗口ignoresMouseEvents = true）
+        let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.checkMousePosition()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        mouseCheckTimer = timer
+    }
+
+    /// 停止鼠标监控
+    private func stopMouseMonitoring() {
+        mouseCheckTimer?.invalidate()
+        mouseCheckTimer = nil
+        if let monitor = globalMouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMouseMonitor = nil
         }
     }
 
-    /// 更新鼠标追踪区域（当视图大小改变时调用）
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        // 移除旧的追踪区域
-        if let trackingArea = trackingArea {
-            removeTrackingArea(trackingArea)
+    /// 检查鼠标是否在视图范围内
+    private func checkMousePosition() {
+        guard let window = window else { return }
+
+        // 获取鼠标在屏幕上的位置
+        let mouseLocation = NSEvent.mouseLocation
+
+        // 转换为窗口坐标
+        let screenRect = NSRect(origin: mouseLocation, size: .zero)
+        let windowRect = window.convertFromScreen(screenRect)
+        let windowLocation = windowRect.origin
+
+        // 转换为视图坐标
+        let viewLocation = convert(windowLocation, from: nil)
+
+        // 检查鼠标是否在视图范围内
+        let wasHovering = isHovering
+        isHovering = bounds.contains(viewLocation)
+
+        // 状态改变时触发回调
+        if isHovering && !wasHovering {
+            handleMouseEntered()
+        } else if !isHovering && wasHovering {
+            handleMouseExited()
         }
-        // 重新设置追踪区域
-        setupTrackingArea()
     }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if window != nil {
-            print("🖱️ [UnderlineView] View added to window, text: \(text), callback set: \(onClicked != nil)")
+            print("🖱️ [UnderlineView] View added to window, text: \(text)")
+            setupMouseMonitoring()
+        } else {
+            stopMouseMonitoring()
         }
+    }
+
+    deinit {
+        stopMouseMonitoring()
+        hoverDebounceTimer?.invalidate()
     }
 
     /// 绘制视图内容（下划线和鼠标悬停效果）
@@ -194,11 +227,9 @@ class UnderlineView: NSView {
         path.stroke()                                          // 绘制路径
     }
 
-    /// 鼠标进入视图时触发
-    override func mouseEntered(with event: NSEvent) {
+    /// 处理鼠标进入视图
+    private func handleMouseEntered() {
         print("🖱️ [UnderlineView] Mouse entered: \(text)")
-        isHovering = true                 // 标记为悬停状态
-        NSCursor.pointingHand.push()      // 切换为手形指针
         needsDisplay = true               // 触发重绘（显示轻微背景）
 
         // 使用防抖定时器，避免鼠标快速移动时频繁触发弹窗
@@ -210,39 +241,14 @@ class UnderlineView: NSView {
         }
     }
 
-    /// 鼠标离开视图时触发
-    override func mouseExited(with event: NSEvent) {
+    /// 处理鼠标离开视图
+    private func handleMouseExited() {
         print("🖱️ [UnderlineView] Mouse exited: \(text)")
-        isHovering = false                // 取消悬停状态
-        NSCursor.pop()                    // 恢复默认指针
         needsDisplay = true               // 触发重绘（移除背景）
 
         // 取消防抖定时器
         hoverDebounceTimer?.invalidate()
         hoverDebounceTimer = nil
-    }
-
-    /// 鼠标点击视图时触发（用于直接应用翻译）
-    override func mouseDown(with event: NSEvent) {
-        print("🖱️ [UnderlineView] Mouse down on: \(text)")
-        // 调用点击回调函数（如果需要的话）
-        if let callback = onClicked {
-            print("🖱️ [UnderlineView] Calling onClicked callback")
-            callback(text)
-        }
-    }
-
-    /// 允许在不激活窗口的情况下接收第一次鼠标点击
-    /// 这样用户可以直接点击下划线，而不需要先激活 Translayr 应用
-    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
-        return true
-    }
-
-    /// 让整个视图区域都能响应鼠标事件
-    /// - Parameter point: 鼠标点击的位置
-    /// - Returns: 如果点击在视图范围内，返回 self；否则返回 nil
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        return bounds.contains(point) ? self : nil
     }
 }
 
