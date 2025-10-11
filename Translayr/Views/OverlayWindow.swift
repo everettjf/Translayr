@@ -62,7 +62,8 @@ class OverlayWindow: NSWindow {
     ///   - rect: 文本区域的位置和大小（Cocoa 坐标系）
     ///   - text: 要显示下划线的文本内容
     ///   - onClicked: 点击下划线时的回调函数
-    func showUnderline(at rect: NSRect, text: String, onClicked: ((String) -> Void)? = nil) {
+    ///   - onHovered: 鼠标悬停时的回调函数
+    func showUnderline(at rect: NSRect, text: String, onClicked: ((String) -> Void)? = nil, onHovered: ((String) -> Void)? = nil) {
         // 让窗口覆盖整个文本区域，方便用户点击
         // 但下划线只绘制在底部
         let clickableRect = NSRect(
@@ -82,6 +83,9 @@ class OverlayWindow: NSWindow {
             if let onClicked = onClicked {
                 underlineView.onClicked = onClicked
             }
+            if let onHovered = onHovered {
+                underlineView.onHovered = onHovered
+            }
             let newSize = NSSize(width: clickableRect.width, height: clickableRect.height)
             if underlineView.frame.size != newSize {
                 underlineView.setFrameSize(newSize)
@@ -93,6 +97,7 @@ class OverlayWindow: NSWindow {
             let underlineView = UnderlineView(frame: NSRect(x: 0, y: 0, width: clickableRect.width, height: clickableRect.height))
             underlineView.text = text
             underlineView.onClicked = onClicked
+            underlineView.onHovered = onHovered
             self.contentView = underlineView
         }
 
@@ -109,18 +114,22 @@ class OverlayWindow: NSWindow {
 /// 下划线视图 - 绘制红色下划线并处理用户交互
 /// 功能：
 /// 1. 在底部绘制红色下划线
-/// 2. 鼠标悬停时显示蓝色高亮背景
-/// 3. 鼠标悬停时显示手形指针
-/// 4. 响应点击事件以显示翻译弹窗
+/// 2. 鼠标悬停时显示轻微高亮背景
+/// 3. 鼠标悬停时显示翻译弹窗
+/// 4. 响应点击事件以应用翻译
 class UnderlineView: NSView {
     /// 下划线对应的文本内容
     var text: String = ""
     /// 点击回调函数
     var onClicked: ((String) -> Void)?
+    /// 悬停回调函数（用于显示翻译弹窗）
+    var onHovered: ((String) -> Void)?
     /// 是否鼠标悬停中
     private var isHovering = false
     /// 鼠标追踪区域
     private var trackingArea: NSTrackingArea?
+    /// 防抖定时器 - 避免鼠标快速移动时频繁触发弹窗
+    private var hoverDebounceTimer: Timer?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -165,9 +174,10 @@ class UnderlineView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
-        // 鼠标悬停时绘制半透明蓝色高亮背景
+        // 鼠标悬停时绘制轻微高亮背景（参考 Grammarly 的轻微突出效果）
         if isHovering {
-            NSColor.systemBlue.withAlphaComponent(0.1).setFill()
+            // 使用更柔和的背景色，类似 Grammarly 的悬停效果
+            NSColor.systemBlue.withAlphaComponent(0.06).setFill()
             bounds.fill()
         }
 
@@ -189,7 +199,15 @@ class UnderlineView: NSView {
         print("🖱️ [UnderlineView] Mouse entered: \(text)")
         isHovering = true                 // 标记为悬停状态
         NSCursor.pointingHand.push()      // 切换为手形指针
-        needsDisplay = true               // 触发重绘（显示蓝色背景）
+        needsDisplay = true               // 触发重绘（显示轻微背景）
+
+        // 使用防抖定时器，避免鼠标快速移动时频繁触发弹窗
+        hoverDebounceTimer?.invalidate()
+        hoverDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            guard let self = self, let callback = self.onHovered else { return }
+            print("🖱️ [UnderlineView] Calling onHovered callback after debounce")
+            callback(self.text)
+        }
     }
 
     /// 鼠标离开视图时触发
@@ -197,18 +215,20 @@ class UnderlineView: NSView {
         print("🖱️ [UnderlineView] Mouse exited: \(text)")
         isHovering = false                // 取消悬停状态
         NSCursor.pop()                    // 恢复默认指针
-        needsDisplay = true               // 触发重绘（移除蓝色背景）
+        needsDisplay = true               // 触发重绘（移除背景）
+
+        // 取消防抖定时器
+        hoverDebounceTimer?.invalidate()
+        hoverDebounceTimer = nil
     }
 
-    /// 鼠标点击视图时触发
+    /// 鼠标点击视图时触发（用于直接应用翻译）
     override func mouseDown(with event: NSEvent) {
         print("🖱️ [UnderlineView] Mouse down on: \(text)")
-        // 调用点击回调函数，显示翻译弹窗
+        // 调用点击回调函数（如果需要的话）
         if let callback = onClicked {
             print("🖱️ [UnderlineView] Calling onClicked callback")
             callback(text)
-        } else {
-            print("⚠️ [UnderlineView] No onClicked callback set!")
         }
     }
 
@@ -294,22 +314,28 @@ class OverlayWindowManager {
         print("   Screen height: \(screenHeight)")
         print("   Cocoa bounds: \(screenBounds)")
 
+        // 定义悬停回调函数（弱引用 self 防止循环引用）
+        let hoverHandler: (String) -> Void = { [weak self] text in
+            print("🖱️ [OverlayWindowManager] Hover handler triggered for: \(text)")
+            Task { @MainActor in
+                await self?.handleTextHovered(text, item: item, bounds: screenBounds)
+            }
+        }
+
         // 定义点击回调函数（弱引用 self 防止循环引用）
         let clickHandler: (String) -> Void = { [weak self] text in
             print("🖱️ [OverlayWindowManager] Click handler triggered for: \(text)")
-            Task { @MainActor in
-                await self?.handleTextClicked(text, item: item, bounds: screenBounds)
-            }
+            // 点击时可以用于其他操作（如果需要的话）
         }
 
         // 创建或更新下划线窗口
         if let window = overlayWindows[key] {
             // 窗口已存在，直接更新
-            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
+            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler, onHovered: hoverHandler)
         } else {
             // 创建新窗口
             let window = OverlayWindow(frame: screenBounds)
-            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler)
+            window.showUnderline(at: screenBounds, text: item.text, onClicked: clickHandler, onHovered: hoverHandler)
             overlayWindows[key] = window
         }
     }
@@ -330,23 +356,40 @@ class OverlayWindowManager {
         currentTranslationPopup = nil
     }
 
-    /// 处理下划线被点击的事件
+    /// 处理鼠标悬停在下划线上的事件（显示翻译弹窗）
+    /// - Parameters:
+    ///   - text: 悬停的文本内容
+    ///   - item: 检测到的文本项
+    ///   - bounds: 文本的屏幕位置（Cocoa 坐标系）
+    private func handleTextHovered(_ text: String, item: DetectedTextItem, bounds: NSRect) async {
+        print("🔄 Hover detected, showing popup for: \(text)")
+
+        // 先显示弹窗（loading 状态），不阻塞 UI
+        showTranslationPopup(for: text, translations: [], near: bounds) { [weak self] translation in
+            // 用户选择翻译后，在外部应用中替换文本
+            self?.replaceTextInExternalApp(item: item, with: translation)
+        }
+
+        // 异步获取翻译结果
+        let translation = await SpellCheckMonitor.shared.translateItem(item)
+        let translations = translation.isEmpty ? [] : [translation]
+
+        // 更新弹窗内容（用翻译结果替换 loading）
+        if !translations.isEmpty {
+            showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
+                self?.replaceTextInExternalApp(item: item, with: translation)
+            }
+        }
+    }
+
+    /// 处理下划线被点击的事件（可选功能，当前未使用）
     /// - Parameters:
     ///   - text: 被点击的文本内容
     ///   - item: 检测到的文本项
     ///   - bounds: 文本的屏幕位置（Cocoa 坐标系）
     private func handleTextClicked(_ text: String, item: DetectedTextItem, bounds: NSRect) async {
-        print("🔄 Getting translations for: \(text)")
-
-        // 从 SpellCheckMonitor 获取翻译结果
-        let translation = await SpellCheckMonitor.shared.translateItem(item)
-        let translations = translation.isEmpty ? [] : [translation]
-
-        // 在点击的文本附近显示翻译弹窗
-        showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
-            // 用户选择翻译后，在外部应用中替换文本
-            self?.replaceTextInExternalApp(item: item, with: translation)
-        }
+        // 点击时可以执行其他操作（如果需要的话）
+        print("🔄 Click detected for: \(text)")
     }
 
     /// 在外部应用中替换文本
@@ -376,17 +419,19 @@ class OverlayWindowManager {
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
 
-        // 定义弹窗尺寸
-        let popupWidth: CGFloat = 200
-        let popupHeight: CGFloat = 150
+        // 定义弹窗尺寸（参考 Grammarly 的弹窗大小）
+        let popupWidth: CGFloat = 280
+        let popupHeight: CGFloat = 200
 
-        // 计算弹窗位置（默认在文字下方，间距 30 像素）
+        // 计算弹窗位置（默认在文字上方，间距 8 像素，类似 Grammarly）
         var popupX = textBounds.origin.x
-        var popupY = textBounds.origin.y - popupHeight - 30
+        var popupY = textBounds.origin.y + textBounds.size.height + 8
 
-        // 如果弹窗会超出屏幕底部，则显示在文字上方
-        if popupY < 50 {
-            popupY = textBounds.origin.y + textBounds.size.height + 30
+        // 如果弹窗会超出屏幕顶部，则显示在文字下方
+        if let screen = NSScreen.main {
+            if popupY + popupHeight > screen.frame.maxY - 20 {
+                popupY = textBounds.origin.y - popupHeight - 8
+            }
         }
 
         // 防止弹窗超出屏幕右边缘

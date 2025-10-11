@@ -91,7 +91,7 @@ class SpellCheckMonitor: ObservableObject {
 
     /// 检测文本中的目标语言内容
     /// 策略：
-    /// 1. 优先检测语言句子（以标点符号分隔）
+    /// 1. 优先检测语言句子（以句号、问号、叹号分隔，保留引号括号，支持中英文混合）
     /// 2. 然后检测独立的语言词组（根据语言配置的最小长度）
     /// - Parameter text: 要检测的文本
     private func detectText(_ text: String) {
@@ -110,24 +110,14 @@ class SpellCheckMonitor: ObservableObject {
 
         var items: [DetectedTextItem] = []
 
-        // Priority 1: Detect sentences (split by specific punctuation, excluding parentheses)
-        // 仅使用空格、逗号、句号等作为分隔符，不包括括号
-        let sentencePattern = "[\(language.unicodePattern)][^。！？；，、.!?,;\\s\\n]*[。！？；，、.!?,;\\s]"
-        if let sentenceRegex = try? NSRegularExpression(pattern: sentencePattern, options: []) {
-            let matches = sentenceRegex.matches(in: text, options: [], range: NSRange(text.startIndex..., in: text))
-            print("   Found \(matches.count) sentence matches")
+        // Priority 1: Detect sentences using improved logic
+        // 按句号、破折号、问号、叹号分割，保留引号括号，支持中英文混合
+        let sentences = detectSentences(in: text, language: language)
+        print("   Found \(sentences.count) sentence(s)")
 
-            for match in matches {
-                if let range = Range(match.range, in: text) {
-                    let sentence = String(text[range])
-                    print("   Sentence: \(sentence)")
-                    items.append(DetectedTextItem(
-                        text: sentence,
-                        range: match.range,
-                        type: .sentence
-                    ))
-                }
-            }
+        for sentence in sentences {
+            print("   Sentence: \(sentence.text)")
+            items.append(sentence)
         }
 
         // Priority 2: Detect individual words (based on language min length) not in sentences
@@ -159,6 +149,100 @@ class SpellCheckMonitor: ObservableObject {
 
         // Show overlay windows for detected items (only for external apps)
         showOverlayWindows(for: items)
+    }
+
+    /// 检测句子的智能算法
+    /// 规则：
+    /// - 句子以句号（。.）、问号（？?）、叹号（！!）结束
+    /// - 逗号、分号、破折号不分割句子
+    /// - 引号和括号内的内容保持在一起
+    /// - 支持中英文混合（不因为有英文就分割）
+    /// - Parameter text: 要检测的文本
+    /// - Parameter language: 目标语言
+    /// - Returns: 检测到的句子列表
+    private func detectSentences(in text: String, language: Language) -> [DetectedTextItem] {
+        var sentences: [DetectedTextItem] = []
+        let nsText = text as NSString
+
+        // 句子结束符：句号、问号、叹号
+        let sentenceEnders: Set<Character> = ["。", ".", "？", "?", "！", "!"]
+
+        // 创建语言字符检测的正则表达式
+        guard let languageRegex = try? NSRegularExpression(pattern: "[\(language.unicodePattern)]", options: []) else {
+            return []
+        }
+
+        var currentStart: Int? = nil
+        var parenDepth = 0  // 括号深度
+        var quoteDepth = 0  // 引号深度
+
+        // 遍历每个字符
+        for i in 0..<text.count {
+            let index = text.index(text.startIndex, offsetBy: i)
+            let char = text[index]
+
+            // 检查是否是目标语言字符
+            let charRange = NSRange(location: i, length: 1)
+            let hasLanguageChar = languageRegex.firstMatch(in: text, options: [], range: charRange) != nil
+
+            // 如果遇到目标语言字符，标记句子开始
+            if hasLanguageChar && currentStart == nil {
+                currentStart = i
+            }
+
+            // 更新括号和引号深度
+            if char == "(" || char == "（" || char == "[" || char == "【" {
+                parenDepth += 1
+            } else if char == ")" || char == "）" || char == "]" || char == "】" {
+                parenDepth = max(0, parenDepth - 1)
+            } else if char == "\"" || char == "\u{201C}" || char == "\u{201D}" || char == "'" || char == "\u{2018}" || char == "\u{2019}" {
+                quoteDepth = (quoteDepth + 1) % 2
+            }
+
+            // 检查是否是句子结束符
+            if let start = currentStart,
+               sentenceEnders.contains(char),
+               parenDepth == 0,
+               quoteDepth == 0 {
+                // 找到句子结束
+                let sentenceRange = NSRange(location: start, length: i - start + 1)
+                let sentenceText = nsText.substring(with: sentenceRange)
+                    .trimmingCharacters(in: .whitespaces)
+
+                // 只保留包含目标语言字符的句子
+                if !sentenceText.isEmpty {
+                    // 调整范围以匹配修剪后的文本
+                    let trimmedRange = (text as NSString).range(of: sentenceText, options: [], range: NSRange(location: start, length: i - start + 1))
+
+                    sentences.append(DetectedTextItem(
+                        text: sentenceText,
+                        range: trimmedRange,
+                        type: .sentence
+                    ))
+                }
+
+                currentStart = nil
+            }
+        }
+
+        // 处理未结束的句子（到文本末尾）
+        if let start = currentStart {
+            let sentenceRange = NSRange(location: start, length: text.count - start)
+            let sentenceText = nsText.substring(with: sentenceRange)
+                .trimmingCharacters(in: .whitespaces)
+
+            if !sentenceText.isEmpty {
+                let trimmedRange = (text as NSString).range(of: sentenceText, options: [], range: sentenceRange)
+
+                sentences.append(DetectedTextItem(
+                    text: sentenceText,
+                    range: trimmedRange,
+                    type: .sentence
+                ))
+            }
+        }
+
+        return sentences
     }
 
     /// Show overlay windows for detected text in external apps

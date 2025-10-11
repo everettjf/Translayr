@@ -94,7 +94,6 @@ class SystemServiceProvider: NSObject {
     }
 
     private func getTranslations(_ text: String) async -> [String] {
-        let language = LanguageConfig.sourceLanguage
         print("Getting translations for: \(text)")
 
         guard containsTargetLanguage(text) else {
