@@ -1,289 +1,403 @@
-# Spello - AI-Powered Spelling and Translation for macOS
+# Spello - 系统级智能翻译助手
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" />
   <img src="https://img.shields.io/badge/Swift-5.9+-orange.svg" />
   <img src="https://img.shields.io/badge/Xcode-15.0+-blue.svg" />
+  <img src="https://img.shields.io/badge/Ollama-Local%20AI-green.svg" />
 </p>
 
-Spello 是一款专为 macOS 设计的智能拼写检查和翻译工具。它结合了 macOS 原生的拼写检查能力和本地 AI 模型（Ollama），为用户提供强大的拼写纠错和中英翻译功能。
+Spello 是一款专为 macOS 设计的**系统级智能翻译助手**。它能实时监控任何应用中的文本输入，自动检测多种语言并提供即时翻译。通过结合 macOS Accessibility API 和本地 AI 模型（Ollama），Spello 为用户提供了一个强大、私密且流畅的跨应用翻译体验。
 
-## ✨ 主要特性
+## ✨ 核心特性
 
-- **🌍 系统级服务**: 在任何 macOS 应用中使用翻译功能（Notes, TextEdit, Safari 等）
-- **🔍 智能拼写检查**: 利用 macOS 原生 NSSpellChecker API，支持多语言拼写检查
-- **🤖 AI 翻译**: 集成 Ollama 本地 AI 模型，提供中文到英文的智能翻译
-- **🔒 隐私保护**: 所有处理都在本地完成，不发送数据到云端
-- **⚡️ 实时检查**: 在输入时实时标记拼写错误
-- **📝 上下文建议**: 提供上下文感知的拼写和翻译建议
-- **🎨 简洁界面**: 直观的用户界面，易于使用
-- **📚 词典管理**: 支持添加自定义词汇到用户词典
+### 🌐 系统级监控
+- **跨应用监控**: 在任何 macOS 应用中自动检测和翻译文本（Notes、TextEdit、Safari、Chrome 等）
+- **实时文本检测**: 自动识别文本输入框中的内容，无需手动触发
+- **智能文本分析**: 自动分词并识别句子和词组
+- **应用白名单**: 可配置跳过列表，排除不需要监控的应用
 
-## 🎯 核心功能
+### 🤖 智能翻译
+- **多语言支持**: 支持世界上使用人数最多的 10 种语言
+  - 中文、英语、西班牙语、印地语、阿拉伯语、法语、孟加拉语、俄语、葡萄牙语、印尼语
+- **本地 AI 模型**: 使用 Ollama 提供高质量翻译，无需联网
+- **双向翻译**: 可自定义源语言和目标语言
+- **上下文感知**: 根据完整句子或词组提供准确翻译
 
-### 拼写检查
+### 🎨 优雅的用户界面
+- **浮动下划线**: 在检测到的文本下方显示彩色下划线提示
+- **鼠标悬停效果**: 悬停时高亮显示，提供视觉反馈
+- **弹窗式翻译**: 点击下划线即显示翻译结果弹窗
+- **一键替换**: 点击翻译结果直接在原应用中替换文本
+- **自适应位置**: 翻译弹窗智能定位，避免遮挡文本
 
-- 实时拼写错误高亮
-- 多种拼写建议
-- 右键菜单快速修正
-- 忽略词和学习词功能
-- 支持多语言
+### 🔒 隐私保护
+- **完全本地处理**: 所有翻译在本地完成，数据不离开你的设备
+- **无网络依赖**: 不需要云服务或互联网连接
+- **权限可控**: 用户完全掌控辅助功能权限
 
-### AI 翻译
+### ⚙️ 丰富的配置选项
+- **语言选择**: 自定义检测语言和目标翻译语言
+- **颜色自定义**: 可配置下划线颜色
+- **应用过滤**: 设置跳过监控的应用列表
+- **模型选择**: 支持多种 Ollama 模型
+- **菜单栏集成**: 便捷的菜单栏快速访问
 
-- **自动检测中文**: 自动识别文本中的中文内容
-- **智能翻译**: 使用 Ollama 本地模型翻译中文到英文
-- **词级翻译**: 对每个中文词或短语提供翻译建议
-- **一键替换**: 点击建议即可替换原文
+## 📸 使用场景
 
-### 系统级服务
-
-- **跨应用使用**: 在任何支持文本选择的 macOS 应用中使用
-- **右键菜单集成**: 选择文本 > 右键 > Services > Spello
-- **快捷键支持**: 可自定义键盘快捷键
-- **无缝体验**: 直接在原应用中替换翻译结果
-
-## 系统要求
-
-- macOS 13.0 或更高版本
-- Xcode 15.0 或更高版本
-- [Ollama](https://ollama.ai) 已安装（用于 AI 翻译功能）
+- **写作辅助**: 在任何文本编辑器中实时翻译外语词汇
+- **学习工具**: 浏览网页时即时翻译不认识的词汇
+- **邮件撰写**: 在邮件客户端中快速翻译句子
+- **代码注释**: 帮助编写多语言代码注释
+- **社交媒体**: 在聊天应用中翻译消息
 
 ## 🚀 快速开始
 
-### 安装 Ollama
+### 系统要求
+- macOS 13.0 或更高版本
+- Xcode 15.0 或更高版本（用于构建）
+- [Ollama](https://ollama.ai) 已安装并运行
 
-1. 安装 Ollama:
+### 1. 安装 Ollama
+
 ```bash
+# 使用 Homebrew 安装
 brew install ollama
-```
 
-2. 下载推荐的翻译模型（选择其一）:
-```bash
-# 推荐：轻量级，适合快速翻译
-ollama pull qwen2.5:3b
+# 下载推荐的翻译模型（选择其一）
+ollama pull qwen2.5:3b      # 推荐：轻量级，适合快速翻译
+ollama pull llama3.2:3b     # 备选：平衡性能和准确度
+ollama pull gemma2:2b       # 备选：超轻量级
 
-# 备选：平衡性能和准确度
-ollama pull llama3.2:3b
-
-# 备选：超轻量级
-ollama pull gemma2:2b
-```
-
-3. 启动 Ollama 服务:
-```bash
+# 启动 Ollama 服务
 ollama serve
 ```
 
-### 构建项目
+### 2. 构建并运行 Spello
 
-1. 克隆仓库:
 ```bash
+# 克隆项目
 git clone <your-repo-url>
 cd Spello
-```
 
-2. 打开项目:
-```bash
+# 在 Xcode 中打开项目
 open Spello.xcodeproj
+
+# 在 Xcode 中按 ⌘ + R 运行
 ```
 
-3. 在 Xcode 中构建并运行:
-   - 按 `⌘ + R` 运行项目
-   - 或选择 Product > Run
+### 3. 授予辅助功能权限
 
-## 📖 使用指南
+首次运行时，Spello 会请求辅助功能权限：
 
-### 快速开始
+1. 系统会自动弹出权限请求对话框
+2. 点击 "Open System Settings"
+3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中启用 Spello
+4. 重启 Spello 以激活监控功能
 
-1. **确保 Ollama 运行**:
+### 4. 开始使用
+
+1. **确保 Ollama 服务运行中**
    ```bash
    ollama serve
    ```
 
-2. **启动应用**:
-   - 打开 Spello 应用
-   - 应用会自动加载中文示例文本
+2. **在设置中配置语言**
+   - 点击菜单栏中的 Spello 图标
+   - 选择 "Settings"
+   - 在 "Language" 标签中选择源语言和目标语言
 
-3. **在 Spello 应用内翻译**:
-   - 点击 "Check Spelling" 按钮
-   - 等待 AI 分析（第一次可能需要几秒加载模型）
-   - 查看翻译建议列表
-   - 点击建议应用翻译
+3. **在任何应用中输入文本**
+   - 在支持的应用中输入或粘贴文本
+   - Spello 会自动检测目标语言并显示下划线
+   - 点击下划线查看翻译
+   - 点击翻译结果即可替换原文
 
-4. **在其他应用中使用（系统服务）**:
-   - 在任何应用中选择中文文本
-   - 右键 > Services > **Translate to English (Spello)**
-   - 或使用快捷键（可自定义）
-   - 详见 [SYSTEM_SERVICE.md](SYSTEM_SERVICE.md)
+## 📖 详细使用指南
 
-### AI 翻译功能说明
+### 支持的语言
 
-**AI 翻译默认启用**，会自动检测文本中的中文并提供英文翻译：
+| 语言 | 代码 | 最小检测长度 | Unicode 模式 |
+|------|------|------------|-------------|
+| 中文 | zh | 2 字 | CJK 统一汉字 |
+| 英语 | en | 4 字母 | 拉丁字母 |
+| 西班牙语 | es | 3 字母 | 拉丁字母 + 特殊字符 |
+| 印地语 | hi | 2 字符 | 天城文 |
+| 阿拉伯语 | ar | 3 字符 | 阿拉伯字母 |
+| 法语 | fr | 3 字母 | 拉丁字母 + 法语特殊字符 |
+| 孟加拉语 | bn | 2 字符 | 孟加拉文 |
+| 俄语 | ru | 3 字母 | 西里尔字母 |
+| 葡萄牙语 | pt | 3 字母 | 拉丁字母 + 葡语特殊字符 |
+| 印尼语 | id | 4 字母 | 拉丁字母 |
 
-- ✅ **自动检测**: 自动识别2个字以上的中文词组
-- ✅ **智能分词**: 将文本分割成有意义的词组
-- ✅ **实时翻译**: 使用 Ollama 本地模型进行翻译
-- ✅ **一键替换**: 点击翻译建议即可替换原文
+### 工作原理
 
-**示例文本**：
 ```
-这是一个示例文本。你可以在这里输入或粘贴中文文本，应用会自动为你提供英文翻译建议。
-
-试试输入一些中文词汇，比如"人工智能"、"机器学习"、"深度学习"等，看看翻译效果。
+用户在任何应用中输入文本
+          ↓
+AccessibilityMonitor 监控文本变化
+          ↓
+SpellCheckMonitor 检测目标语言
+          ↓
+OverlayWindow 显示下划线标记
+          ↓
+用户点击下划线
+          ↓
+LocalModelClient 调用 Ollama 翻译
+          ↓
+显示翻译弹窗
+          ↓
+用户选择翻译结果
+          ↓
+在原应用中替换文本
 ```
 
-### 调试输出
+### 高级配置
 
-应用会在控制台输出详细的调试信息，包括：
-- 检测到的中文片段
-- 分词结果
-- 翻译请求和响应
-- 生成的建议数量
+#### 自定义跳过应用列表
 
-### 配置选项
+在 "Skip Apps" 设置中，可以配置不需要监控的应用：
 
-在工具栏中可以配置：
+```
+Xcode, Terminal, iTerm, 1Password
+```
 
-- **Auto-correct**: 启用/禁用自动拼写纠正
-- **Language**: 选择拼写检查语言或自动检测
+用逗号分隔应用名称（不区分大小写）。
 
-## 项目结构
+#### 自定义下划线颜色
+
+在 "Colors" 设置中选择喜欢的下划线颜色：
+- 红色（默认）
+- 蓝色
+- 绿色
+- 紫色
+- 橙色
+
+#### 选择 AI 模型
+
+在 "Models" 设置中选择 Ollama 模型：
+- 输入模型名称（如 `qwen2.5:3b`）
+- 点击 "Save" 保存设置
+
+## 🏗️ 项目架构
 
 ```
 Spello/
 ├── Spello/
+│   ├── SpelloApp.swift              # 应用入口，菜单栏集成
+│   ├── ContentView.swift            # 主界面
+│   │
 │   ├── Models/
-│   │   └── Suggestion.swift           # 建议数据模型
+│   │   └── Suggestion.swift         # 建议数据模型
+│   │
 │   ├── Protocols/
-│   │   └── SpellAnalyzing.swift       # 拼写分析协议
+│   │   └── SpellAnalyzing.swift     # 拼写分析协议
+│   │
 │   ├── Services/
-│   │   ├── SpellService.swift         # 核心拼写服务
-│   │   └── LocalModelClient.swift     # 本地AI模型客户端
+│   │   ├── AccessibilityMonitor.swift    # 辅助功能监控器（文本获取）
+│   │   ├── SpellCheckMonitor.swift       # 拼写检查监控器（核心协调）
+│   │   ├── SpellService.swift            # 拼写服务（翻译逻辑）
+│   │   ├── LocalModelClient.swift        # Ollama 客户端
+│   │   ├── SystemServiceProvider.swift   # 系统服务提供者
+│   │   └── LanguageConfig.swift          # 语言配置管理
+│   │
 │   ├── Views/
-│   │   ├── SpellCheckedTextView.swift # 拼写检查文本视图
-│   │   └── SuggestionsView.swift      # 建议显示视图
-│   ├── ContentView.swift              # 主界面
-│   └── SpelloApp.swift               # 应用入口
-├── SpelloTests/                       # 单元测试
-└── README.md                         # 项目说明
+│   │   ├── OverlayWindow.swift          # 浮动下划线窗口
+│   │   ├── MenuBarView.swift            # 菜单栏视图
+│   │   │
+│   │   └── SettingsView/
+│   │       ├── SettingsView.swift           # 设置主视图
+│   │       ├── GeneralSettingsView.swift    # 通用设置
+│   │       ├── LanguageSettingsView.swift   # 语言设置
+│   │       ├── ColorSettingsView.swift      # 颜色设置
+│   │       ├── SkipAppsSettingsView.swift   # 跳过应用设置
+│   │       ├── ModelsSettingsView.swift     # 模型设置
+│   │       ├── PreferencesSection.swift     # 偏好设置组件
+│   │       └── AboutView.swift              # 关于页面
+│   │
+│   └── Info.plist                   # 应用配置
+│
+├── SpelloTests/                     # 单元测试
+├── README.md                        # 项目说明（本文件）
+├── DOCUMENT.md                      # 详细文档
+├── USAGE.md                         # 使用指南
+├── SYSTEM_SERVICE.md                # 系统服务集成说明
+└── Agents.md                        # AI Agent 相关文档
 ```
 
-## ⚙️ 配置
+## ⚙️ 配置说明
 
 ### Ollama 配置
 
-在 `Spello/Services/OllamaConfig.swift` 中可以自定义配置：
+配置信息存储在 `UserDefaults` 中：
 
 ```swift
-struct OllamaConfig {
-    // Ollama 服务器地址
-    static let host = "http://127.0.0.1"
-    static let port = 11434
+// 保存模型名称
+UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 
-    // 使用的模型
-    static let defaultModel = "qwen2.5:3b"
-
-    // 生成参数
-    static let temperature = 0.3  // 降低可获得更确定的翻译
-    static let topP = 0.9
-    static let topK = 40
-}
+// Ollama 服务器默认地址
+// http://127.0.0.1:11434
 ```
 
-### 推荐模型
+### 推荐模型对比
 
-| 模型 | 大小 | 速度 | 质量 | 适用场景 |
-|------|------|------|------|----------|
-| qwen2.5:3b | ~2GB | ⚡⚡⚡ | ⭐⭐⭐ | 日常翻译，推荐 |
-| llama3.2:3b | ~2GB | ⚡⚡ | ⭐⭐⭐⭐ | 高质量翻译 |
-| gemma2:2b | ~1.5GB | ⚡⚡⚡⚡ | ⭐⭐ | 快速翻译 |
+| 模型 | 大小 | 速度 | 质量 | 内存占用 | 适用场景 |
+|------|------|------|------|---------|----------|
+| qwen2.5:3b | ~2GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | ~4GB | 日常翻译，推荐 ✅ |
+| llama3.2:3b | ~2GB | ⚡⚡ | ⭐⭐⭐⭐⭐ | ~4GB | 高质量翻译 |
+| gemma2:2b | ~1.5GB | ⚡⚡⚡⚡ | ⭐⭐⭐ | ~3GB | 快速翻译、低内存设备 |
+| phi3:3.8b | ~2.3GB | ⚡⚡ | ⭐⭐⭐⭐ | ~4.5GB | 平衡性能 |
 
 ## 🔧 故障排除
 
-### Ollama 连接失败
+### 问题 1: 无法监控其他应用的文本
 
-如果 AI 翻译功能无法工作：
+**症状**: Spello 运行中但没有检测到其他应用的文本
 
-1. 检查 Ollama 是否运行:
-```bash
-curl http://127.0.0.1:11434/api/tags
-```
+**解决方案**:
+1. 确认已授予辅助功能权限
+   - 系统设置 → 隐私与安全性 → 辅助功能 → 启用 Spello
+2. 尝试重启目标应用
+3. 尝试重启 Spello
+4. 检查目标应用是否在跳过列表中
 
-2. 检查模型是否已下载:
-```bash
-ollama list
-```
+### 问题 2: Ollama 连接失败
 
-3. 查看应用日志中的错误信息
+**症状**: 点击下划线后没有翻译结果
 
-### 模型未找到
+**解决方案**:
+1. 确认 Ollama 服务正在运行
+   ```bash
+   curl http://127.0.0.1:11434/api/tags
+   ```
+   如果返回错误，启动 Ollama：
+   ```bash
+   ollama serve
+   ```
+2. 确认模型已下载
+   ```bash
+   ollama list
+   ```
+   如果没有，下载模型：
+   ```bash
+   ollama pull qwen2.5:3b
+   ```
+3. 检查模型名称是否正确配置
 
-如果看到 "Model not found" 错误：
+### 问题 3: 下划线位置不准确
 
-1. 确认模型已下载:
-```bash
-ollama pull qwen2.5:3b
-```
+**症状**: 下划线没有对齐到文本下方
 
-2. 检查 `OllamaConfig.swift` 中的模型名称是否正确
+**解决方案**:
+- Spello 会自动跟踪窗口移动和调整大小
+- 如果位置仍不准确，尝试在该应用中重新输入文本
+- 某些应用可能不支持精确的文本位置 API
 
-## 测试
+### 问题 4: 翻译速度慢
 
-运行单元测试：
-```bash
-# 在Xcode中使用快捷键
-Cmd+U
+**症状**: 点击下划线后需要等待很久才显示翻译
 
-# 或使用命令行
-xcodebuild test -scheme Spello -destination 'platform=macOS'
-```
+**解决方案**:
+1. 首次使用会加载模型（10-30秒），之后会快很多
+2. 尝试使用更轻量的模型（如 `gemma2:2b`）
+3. 确保 Mac 有足够的内存（推荐 8GB+）
+4. 关闭其他占用内存的应用
 
-测试覆盖：
-- SpellService功能测试
-- 建议合并和去重逻辑测试
-- 文本替换正确性测试
-- 本地模型客户端测试
+### 问题 5: 某些应用无法工作
+
+**已知限制**:
+- 某些应用可能不支持辅助功能 API（如某些 Electron 应用）
+- 密码输入框出于安全原因无法访问
+- 某些原生输入法输入框可能不支持
 
 ## 📋 技术栈
 
 - **语言**: Swift 5.9+
-- **UI 框架**: SwiftUI + AppKit (NSTextView)
-- **AI 集成**: [ollama-swift](https://github.com/mattt/ollama-swift)
-- **拼写检查**: NSSpellChecker (macOS 原生)
-- **架构**: MVVM
+- **UI 框架**: SwiftUI + AppKit
+- **AI 集成**: [Ollama](https://ollama.ai)
+- **辅助功能**: macOS Accessibility API (AX API)
+- **系统集成**: NSService, MenuBarExtra
+- **架构模式**: MVVM + Combine
 
-## 🛣️ 路线图
+## 🛣️ 开发路线图
 
-- [ ] 支持更多语言对翻译
-- [ ] 批量文件处理
-- [ ] 自定义翻译提示词
+### 已完成 ✅
+- [x] 系统级文本监控
+- [x] 多语言检测（10 种语言）
+- [x] 实时翻译
+- [x] 浮动下划线提示
+- [x] 一键文本替换
+- [x] 菜单栏集成
+- [x] 多种配置选项
+- [x] 应用跳过列表
+- [x] 自定义颜色
+
+### 计划中 🎯
+- [ ] 快捷键支持（全局热键）
 - [ ] 翻译历史记录
-- [ ] 键盘快捷键
+- [ ] 批量翻译
+- [ ] 文档翻译（PDF, Word）
+- [ ] 离线词典集成
+- [ ] 自定义翻译提示词模板
+- [ ] 多模型对比翻译
 - [ ] 导出/导入词典
 - [ ] 深色模式优化
-- [ ] 菜单栏快捷访问
+- [ ] 更多语言支持
+- [ ] 系统通知集成
 
-## 🤝 贡献
+### 未来展望 🌟
+- [ ] Safari 浏览器扩展
+- [ ] Chrome 浏览器扩展
+- [ ] iOS/iPadOS 版本
+- [ ] iCloud 同步设置
+- [ ] 团队协作功能
 
-欢迎贡献！请随时提交 Pull Request。
+## 🤝 贡献指南
 
-1. Fork 项目
+欢迎贡献代码、报告问题或提出建议！
+
+### 如何贡献
+
+1. Fork 本项目
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
+### 代码规范
+
+- 遵循 Swift 官方编码规范
+- 为新功能添加单元测试
+- 保持代码注释清晰（中英双语更佳）
+- 确保所有测试通过后再提交 PR
+
+### 报告问题
+
+在创建 Issue 时，请提供：
+- macOS 版本
+- Spello 版本
+- Ollama 版本和模型
+- 详细的问题描述和复现步骤
+- 相关的日志输出（如有）
+
 ## 🙏 致谢
 
-- [ollama-swift](https://github.com/mattt/ollama-swift) - Ollama Swift 客户端
-- [Ollama](https://ollama.ai) - 本地 AI 模型运行时
-- Apple NSSpellChecker - macOS 拼写检查 API
+- [Ollama](https://ollama.ai) - 优秀的本地 AI 模型运行时
+- [ollama-swift](https://github.com/mattt/ollama-swift) - Swift 版 Ollama 客户端（如使用）
+- Apple NSSpellChecker - macOS 原生拼写检查 API
+- macOS Accessibility API - 强大的系统辅助功能
+
+## 📄 许可证
+
+本项目采用 [MIT 许可证](LICENSE)。
 
 ## 📧 联系方式
 
-如有问题或建议，欢迎创建 [Issue](../../issues)。
+- 创建 [Issue](../../issues) 报告问题或提出建议
+- 查看 [Discussions](../../discussions) 参与讨论
 
 ---
 
-Made with ❤️ for macOS
+**Made with ❤️ for macOS**
+
+如果觉得 Spello 有用，请给个 ⭐️ Star！
