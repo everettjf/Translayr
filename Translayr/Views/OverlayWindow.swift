@@ -433,21 +433,9 @@ class OverlayWindowManager {
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
 
-        // 定义弹窗尺寸 - 宽度固定，高度自适应
-        let popupWidth: CGFloat = 320
-
-        // 根据翻译内容估算高度
-        // 头部 (Translayr logo): ~36px
-        // Divider: ~1px
-        // 内容区域: 根据文字长度估算，每行约20px，最多10行
-        let headerHeight: CGFloat = 37
-        let dividerHeight: CGFloat = 1
-
-        // 估算文字内容高度（考虑padding）
-        let estimatedTextLines = min(CGFloat(translation.count) / 30.0, 10.0) // 假设每行约30个字符，最多10行
-        let textContentHeight = max(estimatedTextLines * 20 + 24, 50) // 至少50px高度，包含上下padding
-
-        let popupHeight = headerHeight + dividerHeight + textContentHeight
+        // 定义弹窗固定尺寸 - 宽度更宽，高度固定
+        let popupWidth: CGFloat = 400
+        let popupHeight: CGFloat = 100  // 固定高度，足够容纳头部 + 2行文字
 
         // 计算弹窗位置（默认在文字上方，间距 8 像素）
         var popupX = textBounds.origin.x
@@ -598,14 +586,14 @@ struct TranslationContentRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(alignment: .top, spacing: 10) {
-                // 翻译文本 - 紧凑显示，最多10行
+                // 翻译文本 - 紧凑显示，最多2行
                 Text(translation)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.15))  // 固定深灰色（接近黑色）
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(10)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
 
                 // 箭头图标 - 悬停时显示
                 if isHovered {
