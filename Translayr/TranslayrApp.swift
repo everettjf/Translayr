@@ -23,7 +23,7 @@ struct TranslayrApp: App {
         .defaultSize(width: 720, height: 480)
 
         // 菜单栏图标（苹果官方方法）
-        MenuBarExtra("Translayr", systemImage: "character.textbox") {
+        MenuBarExtra("Translayr", systemImage: "character.textbox.badge.sparkles") {
             MenuBarView(accessibilityMonitor: accessibilityMonitor)
         }
         .menuBarExtraStyle(.menu)

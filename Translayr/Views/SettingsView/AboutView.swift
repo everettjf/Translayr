@@ -22,7 +22,7 @@ struct AboutView: View {
             Spacer()
 
             // App Icon
-            Image(systemName: "character.textbox")
+            Image(systemName: "character.textbox.badge.sparkles")
                 .font(.system(size: 80))
                 .foregroundStyle(
                     LinearGradient(
@@ -48,7 +48,7 @@ struct AboutView: View {
                     .font(.headline)
                     .foregroundColor(.primary)
 
-                Text("Automatically detects and translates text in many applications using local AI models")
+                Text("Automatically detects and translates text in many applications using AI models")
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

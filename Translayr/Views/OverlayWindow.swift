@@ -538,8 +538,8 @@ struct TranslationPopupView: View {
         VStack(alignment: .leading, spacing: 0) {
             // Translayr 品牌头部
             HStack(spacing: 6) {
-                // Logo 图标（使用系统图标作为替代）
-                Image(systemName: "character.bubble")
+                // Logo 图标
+                Image(systemName: "character.textbox.badge.sparkles")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.blue.opacity(0.8))
 
