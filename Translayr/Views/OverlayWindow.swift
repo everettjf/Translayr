@@ -536,11 +536,11 @@ struct TranslationPopupView: View {
                 // Logo 图标（使用系统图标作为替代）
                 Image(systemName: "character.bubble")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.blue.opacity(0.7))
+                    .foregroundColor(.blue.opacity(0.8))
 
                 Text("Translayr")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
 
                 Spacer()
             }
@@ -557,10 +557,11 @@ struct TranslationPopupView: View {
                     ProgressView()
                         .scaleEffect(0.7)
                         .progressViewStyle(.circular)
+                        .tint(Color(red: 0.4, green: 0.4, blue: 0.4))
 
                     Text("Translating...")
                         .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
 
                     Spacer()
                 }
@@ -600,7 +601,7 @@ struct TranslationContentRow: View {
                 // 翻译文本 - 紧凑显示，最多10行
                 Text(translation)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.primary)
+                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.15))  // 固定深灰色（接近黑色）
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(10)
