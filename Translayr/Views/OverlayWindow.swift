@@ -165,38 +165,26 @@ class UnderlineView: NSView {
     private func checkMousePosition() {
         guard let window = window else { return }
 
-        Task { @MainActor in
-            // 如果有弹窗正在显示，不检测鼠标位置（避免在弹窗下触发新的悬停）
-            if OverlayWindowManager.shared.hasActivePopup() {
-                // 如果之前是悬停状态，取消悬停
-                if isHovering {
-                    isHovering = false
-                    needsDisplay = true
-                }
-                return
-            }
+        // 获取鼠标在屏幕上的位置
+        let mouseLocation = NSEvent.mouseLocation
 
-            // 获取鼠标在屏幕上的位置
-            let mouseLocation = NSEvent.mouseLocation
+        // 转换为窗口坐标
+        let screenRect = NSRect(origin: mouseLocation, size: .zero)
+        let windowRect = window.convertFromScreen(screenRect)
+        let windowLocation = windowRect.origin
 
-            // 转换为窗口坐标
-            let screenRect = NSRect(origin: mouseLocation, size: .zero)
-            let windowRect = window.convertFromScreen(screenRect)
-            let windowLocation = windowRect.origin
+        // 转换为视图坐标
+        let viewLocation = convert(windowLocation, from: nil)
 
-            // 转换为视图坐标
-            let viewLocation = convert(windowLocation, from: nil)
+        // 检查鼠标是否在视图范围内
+        let wasHovering = isHovering
+        isHovering = bounds.contains(viewLocation)
 
-            // 检查鼠标是否在视图范围内
-            let wasHovering = isHovering
-            isHovering = bounds.contains(viewLocation)
-
-            // 状态改变时触发回调
-            if isHovering && !wasHovering {
-                handleMouseEntered()
-            } else if !isHovering && wasHovering {
-                handleMouseExited()
-            }
+        // 状态改变时触发回调
+        if isHovering && !wasHovering {
+            handleMouseEntered()
+        } else if !isHovering && wasHovering {
+            handleMouseExited()
         }
     }
 
@@ -542,6 +530,7 @@ struct TranslationPopupView: View {
     let onSelect: (String) -> Void
 
     @State private var isMouseInside = false
+    @State private var isCloseButtonHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -557,6 +546,29 @@ struct TranslationPopupView: View {
                     .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
 
                 Spacer()
+
+                // 关闭按钮
+                Button(action: {
+                    OverlayWindowManager.shared.closeTranslationPopup()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(isCloseButtonHovered ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.6, green: 0.6, blue: 0.6))
+                        .frame(width: 20, height: 20)
+                        .background(
+                            Circle()
+                                .fill(isCloseButtonHovered ? Color.black.opacity(0.06) : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    isCloseButtonHovered = hovering
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
