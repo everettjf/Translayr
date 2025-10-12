@@ -545,7 +545,7 @@ struct TranslationPopupView: View {
 
                 Text("Translayr")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
+                    .foregroundColor(.secondary)
 
                 Spacer()
 
@@ -555,11 +555,11 @@ struct TranslationPopupView: View {
                 }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(isCloseButtonHovered ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color(red: 0.6, green: 0.6, blue: 0.6))
+                        .foregroundColor(isCloseButtonHovered ? .primary : .secondary)
                         .frame(width: 20, height: 20)
                         .background(
                             Circle()
-                                .fill(isCloseButtonHovered ? Color.black.opacity(0.06) : Color.clear)
+                                .fill(isCloseButtonHovered ? Color.primary.opacity(0.06) : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)
@@ -574,7 +574,7 @@ struct TranslationPopupView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Color.white)
+            .background(Color(nsColor: .windowBackgroundColor))
             .frame(height: 37)  // 固定头部高度
 
             Divider()
@@ -586,7 +586,7 @@ struct TranslationPopupView: View {
                     HStack(spacing: 8) {
                         Text("Translating...")
                             .font(.system(size: 13))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
+                            .foregroundColor(.secondary)
 
                         Spacer()
                     }
@@ -601,17 +601,17 @@ struct TranslationPopupView: View {
                     .frame(height: 62)  // 固定高度
                 }
             }
-            .background(Color.white)
+            .background(Color(nsColor: .windowBackgroundColor))
         }
         .frame(width: 400, height: 100)  // 强制固定整体尺寸
-        .background(Color.white)
+        .background(Color(nsColor: .windowBackgroundColor))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.2), radius: 16, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 1)
+        .shadow(color: Color.primary.opacity(0.15), radius: 16, x: 0, y: 4)
+        .shadow(color: Color.primary.opacity(0.08), radius: 4, x: 0, y: 1)
     }
 }
 
@@ -629,7 +629,7 @@ struct TranslationContentRow: View {
                 // 翻译文本 - 紧凑显示，最多2行
                 Text(translation)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.15))  // 固定深灰色（接近黑色）
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .lineLimit(2)
@@ -647,7 +647,7 @@ struct TranslationContentRow: View {
             .frame(maxHeight: .infinity)  // 填充整个可用高度
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.blue.opacity(0.05) : Color.white)
+                    .fill(isHovered ? Color.blue.opacity(0.08) : Color(nsColor: .windowBackgroundColor))
             )
         }
         .buttonStyle(.plain)
