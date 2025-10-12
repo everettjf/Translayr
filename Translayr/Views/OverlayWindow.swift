@@ -535,35 +535,40 @@ struct TranslationPopupView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(Color.white)
+            .frame(height: 37)  // 固定头部高度
 
             Divider()
 
-            // 翻译结果
-            if translation.isEmpty {
-                // Loading 状态
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                        .progressViewStyle(.circular)
-                        .tint(Color(red: 0.4, green: 0.4, blue: 0.4))
+            // 翻译结果区域 - 固定高度
+            Group {
+                if translation.isEmpty {
+                    // Loading 状态
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                            .progressViewStyle(.circular)
+                            .tint(Color(red: 0.4, green: 0.4, blue: 0.4))
 
-                    Text("Translating...")
-                        .font(.system(size: 13))
-                        .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
+                        Text("Translating...")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
 
-                    Spacer()
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 62)  // 固定高度，与内容区域一致
+                } else {
+                    // 翻译文字 - 紧凑显示，最多2行
+                    TranslationContentRow(
+                        translation: translation,
+                        onSelect: { onSelect(translation) }
+                    )
+                    .frame(height: 62)  // 固定高度
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .background(Color.white)
-            } else {
-                // 翻译文字 - 紧凑显示，最多10行
-                TranslationContentRow(
-                    translation: translation,
-                    onSelect: { onSelect(translation) }
-                )
             }
+            .background(Color.white)
         }
+        .frame(width: 400, height: 100)  // 强制固定整体尺寸
         .background(Color.white)
         .cornerRadius(8)
         .overlay(
@@ -585,7 +590,7 @@ struct TranslationContentRow: View {
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
                 // 翻译文本 - 紧凑显示，最多2行
                 Text(translation)
                     .font(.system(size: 14, weight: .regular))
@@ -604,7 +609,7 @@ struct TranslationContentRow: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .frame(maxHeight: .infinity)  // 填充整个可用高度
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(isHovered ? Color.blue.opacity(0.05) : Color.white)
