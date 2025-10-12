@@ -283,16 +283,6 @@ class OverlayWindowManager {
 
     // MARK: - Public Translation Popup（公共翻译弹窗方法）
 
-    /// 在指定位置显示翻译弹窗（可从任何地方调用）
-    /// - Parameters:
-    ///   - text: 原文本
-    ///   - translations: 翻译候选列表
-    ///   - sourceRect: 文本的屏幕位置（Cocoa 坐标系）
-    ///   - onSelect: 选择翻译的回调
-    func showTranslation(for text: String, translations: [String], at sourceRect: NSRect, onSelect: @escaping (String) -> Void) {
-        showTranslationPopup(for: text, translations: translations, near: sourceRect, onSelect: onSelect)
-    }
-
     /// 为检测到的文本项显示下划线
     /// - Parameters:
     ///   - item: 检测到的文本项（包含文本内容和位置范围）
@@ -390,18 +380,17 @@ class OverlayWindowManager {
         print("🔄 Hover detected, showing popup for: \(text)")
 
         // 先显示弹窗（loading 状态），不阻塞 UI
-        showTranslationPopup(for: text, translations: [], near: bounds) { [weak self] translation in
+        showTranslationPopup(for: text, translation: "", near: bounds) { [weak self] translation in
             // 用户选择翻译后，在外部应用中替换文本
             self?.replaceTextInExternalApp(item: item, with: translation)
         }
 
         // 异步获取翻译结果
         let translation = await SpellCheckMonitor.shared.translateItem(item)
-        let translations = translation.isEmpty ? [] : [translation]
 
         // 更新弹窗内容（用翻译结果替换 loading）
-        if !translations.isEmpty {
-            showTranslationPopup(for: text, translations: translations, near: bounds) { [weak self] translation in
+        if !translation.isEmpty {
+            showTranslationPopup(for: text, translation: translation, near: bounds) { [weak self] translation in
                 self?.replaceTextInExternalApp(item: item, with: translation)
             }
         }
@@ -439,7 +428,7 @@ class OverlayWindowManager {
     ///   - translations: 翻译候选列表
     ///   - textBounds: 文本的屏幕位置（Cocoa 坐标系）
     ///   - onSelect: 用户选择翻译时的回调函数
-    private func showTranslationPopup(for text: String, translations: [String], near textBounds: NSRect, onSelect: ((String) -> Void)? = nil) {
+    private func showTranslationPopup(for text: String, translation: String, near textBounds: NSRect, onSelect: ((String) -> Void)? = nil) {
         // 关闭之前的弹窗（如果有）
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
@@ -493,7 +482,7 @@ class OverlayWindowManager {
         // 创建 SwiftUI 视图内容
         let translationsView = TranslationPopupView(
             originalText: text,
-            translations: translations,
+            translation: translation,
             onSelect: { [weak self] translation in
                 print("✅ Selected translation: \(translation)")
 
@@ -523,7 +512,7 @@ class OverlayWindowManager {
 
 struct TranslationPopupView: View {
     let originalText: String
-    let translations: [String]
+    let translation: String
     let onSelect: (String) -> Void
 
     @State private var hoveredIndex: Int? = nil
@@ -548,7 +537,7 @@ struct TranslationPopupView: View {
                 .opacity(0.3)
 
             // 翻译结果
-            if translations.isEmpty {
+            if translation.isEmpty {
                 // Loading 状态
                 HStack(spacing: 10) {
                     ProgressView()
@@ -566,16 +555,10 @@ struct TranslationPopupView: View {
             } else {
                 // 翻译列表
                 VStack(spacing: 0) {
-                    ForEach(Array(translations.enumerated()), id: \.offset) { index, translation in
                         TranslationRow(
                             translation: translation,
-                            isHovered: hoveredIndex == index,
                             onSelect: { onSelect(translation) },
-                            onHover: { hovering in
-                                hoveredIndex = hovering ? index : nil
-                            }
                         )
-                    }
                 }
                 .padding(.vertical, 6)
             }
@@ -598,9 +581,9 @@ struct TranslationPopupView: View {
 
 struct TranslationRow: View {
     let translation: String
-    let isHovered: Bool
     let onSelect: () -> Void
-    let onHover: (Bool) -> Void
+    
+    @State var isHovered: Bool = false
 
     var body: some View {
         Button(action: onSelect) {
@@ -616,12 +599,10 @@ struct TranslationRow: View {
                 Spacer(minLength: 0)
 
                 // 箭头图标 - 仅悬停时显示
-                if isHovered {
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.blue)
-                        .transition(.opacity)
-                }
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.blue)
+                    .transition(.opacity)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -633,8 +614,8 @@ struct TranslationRow: View {
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                onHover(hovering)
+            withAnimation {
+                isHovered = hovering
             }
             if hovering {
                 NSCursor.pointingHand.push()
