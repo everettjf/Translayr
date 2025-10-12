@@ -433,11 +433,23 @@ class OverlayWindowManager {
         currentTranslationPopup?.close()
         currentTranslationPopup = nil
 
-        // 定义弹窗尺寸（参考 Grammarly 的弹窗大小）
-        let popupWidth: CGFloat = 300
-        let popupHeight: CGFloat = 200
+        // 定义弹窗尺寸 - 宽度固定，高度自适应
+        let popupWidth: CGFloat = 320
 
-        // 计算弹窗位置（默认在文字上方，间距 8 像素，类似 Grammarly）
+        // 根据翻译内容估算高度
+        // 头部 (Translayr logo): ~36px
+        // Divider: ~1px
+        // 内容区域: 根据文字长度估算，每行约20px，最多10行
+        let headerHeight: CGFloat = 37
+        let dividerHeight: CGFloat = 1
+
+        // 估算文字内容高度（考虑padding）
+        let estimatedTextLines = min(CGFloat(translation.count) / 30.0, 10.0) // 假设每行约30个字符，最多10行
+        let textContentHeight = max(estimatedTextLines * 20 + 24, 50) // 至少50px高度，包含上下padding
+
+        let popupHeight = headerHeight + dividerHeight + textContentHeight
+
+        // 计算弹窗位置（默认在文字上方，间距 8 像素）
         var popupX = textBounds.origin.x
         var popupY = textBounds.origin.y + textBounds.size.height + 8
 
@@ -515,106 +527,104 @@ struct TranslationPopupView: View {
     let translation: String
     let onSelect: (String) -> Void
 
-    @State private var hoveredIndex: Int? = nil
     @State private var isMouseInside = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 简洁的头部 - 类似 Grammarly
-            VStack(alignment: .leading, spacing: 4) {
-                Text(originalText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+            // Translayr 品牌头部
+            HStack(spacing: 6) {
+                // Logo 图标（使用系统图标作为替代）
+                Image(systemName: "character.bubble")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.blue.opacity(0.7))
+
+                Text("Translayr")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                Spacer()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(Color.white)
 
             Divider()
-                .opacity(0.3)
 
             // 翻译结果
             if translation.isEmpty {
                 // Loading 状态
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     ProgressView()
-                        .scaleEffect(0.6)
+                        .scaleEffect(0.7)
                         .progressViewStyle(.circular)
 
                     Text("Translating...")
-                        .font(.system(size: 12))
+                        .font(.system(size: 13))
                         .foregroundColor(.secondary)
 
                     Spacer()
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color.white)
             } else {
-                // 翻译列表
-                VStack(spacing: 0) {
-                        TranslationRow(
-                            translation: translation,
-                            onSelect: { onSelect(translation) },
-                        )
-                }
-                .padding(.vertical, 6)
+                // 翻译文字 - 紧凑显示，最多10行
+                TranslationContentRow(
+                    translation: translation,
+                    onSelect: { onSelect(translation) }
+                )
             }
         }
-        .frame(minHeight: 80, maxHeight: 200)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(NSColor.windowBackgroundColor))
-        )
+        .background(Color.white)
+        .cornerRadius(8)
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.black.opacity(0.12), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 8)
-        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+        .shadow(color: .black.opacity(0.2), radius: 16, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 1)
     }
 }
 
-// MARK: - Translation Row Component
+// MARK: - Translation Content Row Component
 
-struct TranslationRow: View {
+struct TranslationContentRow: View {
     let translation: String
     let onSelect: () -> Void
-    
+
     @State var isHovered: Bool = false
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(spacing: 12) {
-                // 翻译文本
+            HStack(alignment: .top, spacing: 10) {
+                // 翻译文本 - 紧凑显示，最多10行
                 Text(translation)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .lineLimit(3)
+                    .lineLimit(10)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Spacer(minLength: 0)
-
-                // 箭头图标 - 仅悬停时显示
-                Image(systemName: "arrow.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.blue)
-                    .transition(.opacity)
+                // 箭头图标 - 悬停时显示
+                if isHovered {
+                    Image(systemName: "arrow.right.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.blue)
+                        .transition(.opacity)
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.blue.opacity(0.06) : Color.clear)
+                    .fill(isHovered ? Color.blue.opacity(0.05) : Color.white)
             )
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation {
+            withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
             }
             if hovering {
