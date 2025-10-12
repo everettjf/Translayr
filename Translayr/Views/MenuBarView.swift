@@ -9,38 +9,60 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             statusSection
-            Divider()
-            enableToggle
+            enableButton
             Divider()
             controlButtons
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .frame(minWidth: 200)
+        .frame(minWidth: 220)
     }
 
     private var statusSection: some View {
         HStack(spacing: 8) {
-            Text(accessibilityMonitor.isMonitoring ? "Status: Active" : "Status: Inactive")
+            Circle()
+                .fill(isTranslayrEnabled ? Color.green : Color.secondary)
+                .frame(width: 8, height: 8)
+            Text(isTranslayrEnabled ? "Translayr is Active" : "Translayr is Inactive")
                 .font(.headline)
         }
         .accessibilityElement(children: .combine)
     }
 
-    private var enableToggle: some View {
-        Toggle(isOn: $isTranslayrEnabled) {
-            Label("Enable Translayr", systemImage: isTranslayrEnabled ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isTranslayrEnabled ? .green : .secondary)
-        }
-        .toggleStyle(.switch)
-        .onChange(of: isTranslayrEnabled) { oldValue, newValue in
-            if newValue {
-                SpellCheckMonitor.shared.startMonitoring()
-            } else {
-                SpellCheckMonitor.shared.stopMonitoring()
-                OverlayWindowManager.shared.hideAll()
-                OverlayWindowManager.shared.closeTranslationPopup()
+    private var enableButton: some View {
+        Button {
+            toggleTranslayr()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isTranslayrEnabled ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isTranslayrEnabled ? .green : .secondary)
+                    .font(.system(size: 16))
+
+                Text(isTranslayrEnabled ? "Disable Translayr" : "Enable Translayr")
+                    .font(.body)
+
+                Spacer()
             }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(0.05))
+        )
+    }
+
+    private func toggleTranslayr() {
+        isTranslayrEnabled.toggle()
+
+        if isTranslayrEnabled {
+            SpellCheckMonitor.shared.startMonitoring()
+        } else {
+            SpellCheckMonitor.shared.stopMonitoring()
+            OverlayWindowManager.shared.hideAll()
+            OverlayWindowManager.shared.closeTranslationPopup()
         }
     }
 
