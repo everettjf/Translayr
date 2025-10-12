@@ -153,9 +153,8 @@ class SpellCheckMonitor: ObservableObject {
 
     /// 检测句子的智能算法
     /// 规则：
-    /// - 句子以句号（。.）、问号（？?）、叹号（！!）结束
-    /// - 逗号、分号、破折号不分割句子
-    /// - 引号和括号内的内容保持在一起
+    /// - 句子以句号（。.）、逗号（，,）、问号（？?）、叹号（！!）、分号（；;）、破折号（—-）、换行符（\n）结束
+    /// - 引号和括号内的内容保持在一起（不被分割）
     /// - 支持中英文混合（不因为有英文就分割）
     /// - Parameter text: 要检测的文本
     /// - Parameter language: 目标语言
@@ -165,14 +164,22 @@ class SpellCheckMonitor: ObservableObject {
         let nsText = text as NSString
         let textLength = nsText.length
 
-        // 句子结束符：句号、问号、叹号
+        // 句子结束符：句号、逗号、问号、叹号、分号、破折号、换行符
         let sentenceEnders: Set<unichar> = [
-            unichar("。".utf16.first!),
-            unichar(".".utf16.first!),
-            unichar("？".utf16.first!),
-            unichar("?".utf16.first!),
-            unichar("！".utf16.first!),
-            unichar("!".utf16.first!)
+            unichar("。".utf16.first!),  // 中文句号
+            unichar(".".utf16.first!),   // 英文句号
+            unichar("，".utf16.first!),  // 中文逗号
+            unichar(",".utf16.first!),   // 英文逗号
+            unichar("？".utf16.first!),  // 中文问号
+            unichar("?".utf16.first!),   // 英文问号
+            unichar("！".utf16.first!),  // 中文叹号
+            unichar("!".utf16.first!),   // 英文叹号
+            unichar("；".utf16.first!),  // 中文分号
+            unichar(";".utf16.first!),   // 英文分号
+            unichar("—".utf16.first!),   // 中文破折号
+            unichar("-".utf16.first!),   // 英文破折号
+            unichar("\n".utf16.first!),  // 换行符
+            unichar("\r".utf16.first!)   // 回车符（Windows风格）
         ]
 
         // 创建语言字符检测的正则表达式
@@ -232,15 +239,15 @@ class SpellCheckMonitor: ObservableObject {
                sentenceEnders.contains(char),
                parenDepth == 0,
                quoteDepth == 0 {
-                // 找到句子结束
-                let sentenceRange = NSRange(location: start, length: i - start + 1)
+                // 找到句子结束 - 但不包括结束符本身（i 是结束符的位置）
+                let sentenceRange = NSRange(location: start, length: i - start)
                 let sentenceText = nsText.substring(with: sentenceRange)
                     .trimmingCharacters(in: .whitespaces)
 
                 // 只保留包含目标语言字符的句子
                 if !sentenceText.isEmpty {
                     // 调整范围以匹配修剪后的文本
-                    let trimmedRange = nsText.range(of: sentenceText, options: [], range: NSRange(location: start, length: i - start + 1))
+                    let trimmedRange = nsText.range(of: sentenceText, options: [], range: sentenceRange)
 
                     sentences.append(DetectedTextItem(
                         text: sentenceText,
