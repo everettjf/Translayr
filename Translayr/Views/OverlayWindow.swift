@@ -31,8 +31,9 @@ class OverlayWindow: NSWindow {
         self.backgroundColor = .clear       // 背景色：透明
         self.hasShadow = false             // 无阴影
 
-        // 窗口层级：浮动在所有其他应用之上
-        self.level = .floating
+        // 窗口层级：略高于普通窗口（而不是浮动在所有窗口之上）
+        // 这样下划线只会显示在目标应用上方，而不会覆盖其他应用
+        self.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.normalWindow)) + 1)
 
         // 窗口行为：在所有空间显示，并可在全屏应用上方显示
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -485,7 +486,8 @@ class OverlayWindowManager {
         )
 
         // 窗口配置
-        popupPanel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.floatingWindow)) + 2)  // 比下划线窗口更高的层级
+        // 弹窗层级：比下划线窗口高（下划线是 normalWindow + 1，弹窗是 normalWindow + 2）
+        popupPanel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.normalWindow)) + 2)
         popupPanel.isMovableByWindowBackground = false  // 不可通过背景拖动
         popupPanel.hidesOnDeactivate = false       // 不自动隐藏（手动控制）
         popupPanel.isOpaque = false                // 透明窗口
@@ -582,11 +584,6 @@ struct TranslationPopupView: View {
                 if translation.isEmpty {
                     // Loading 状态
                     HStack(spacing: 8) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                            .progressViewStyle(.circular)
-                            .tint(Color(red: 0.4, green: 0.4, blue: 0.4))
-
                         Text("Translating...")
                             .font(.system(size: 13))
                             .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))  // 固定灰色
