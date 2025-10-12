@@ -15,7 +15,7 @@ struct MenuBarView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .frame(minWidth: 220)
+        .frame(minWidth: 250)
     }
 
     private var statusSection: some View {
@@ -23,7 +23,7 @@ struct MenuBarView: View {
             Circle()
                 .fill(isTranslayrEnabled ? Color.green : Color.secondary)
                 .frame(width: 8, height: 8)
-            Text(isTranslayrEnabled ? "Translayr is Active" : "Translayr is Inactive")
+            Text(isTranslayrEnabled ? "Enabled" : "Disabled")
                 .font(.headline)
         }
         .accessibilityElement(children: .combine)
