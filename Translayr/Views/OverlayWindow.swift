@@ -165,26 +165,38 @@ class UnderlineView: NSView {
     private func checkMousePosition() {
         guard let window = window else { return }
 
-        // 获取鼠标在屏幕上的位置
-        let mouseLocation = NSEvent.mouseLocation
+        Task { @MainActor in
+            // 如果有弹窗正在显示，不检测鼠标位置（避免在弹窗下触发新的悬停）
+            if OverlayWindowManager.shared.hasActivePopup() {
+                // 如果之前是悬停状态，取消悬停
+                if isHovering {
+                    isHovering = false
+                    needsDisplay = true
+                }
+                return
+            }
 
-        // 转换为窗口坐标
-        let screenRect = NSRect(origin: mouseLocation, size: .zero)
-        let windowRect = window.convertFromScreen(screenRect)
-        let windowLocation = windowRect.origin
+            // 获取鼠标在屏幕上的位置
+            let mouseLocation = NSEvent.mouseLocation
 
-        // 转换为视图坐标
-        let viewLocation = convert(windowLocation, from: nil)
+            // 转换为窗口坐标
+            let screenRect = NSRect(origin: mouseLocation, size: .zero)
+            let windowRect = window.convertFromScreen(screenRect)
+            let windowLocation = windowRect.origin
 
-        // 检查鼠标是否在视图范围内
-        let wasHovering = isHovering
-        isHovering = bounds.contains(viewLocation)
+            // 转换为视图坐标
+            let viewLocation = convert(windowLocation, from: nil)
 
-        // 状态改变时触发回调
-        if isHovering && !wasHovering {
-            handleMouseEntered()
-        } else if !isHovering && wasHovering {
-            handleMouseExited()
+            // 检查鼠标是否在视图范围内
+            let wasHovering = isHovering
+            isHovering = bounds.contains(viewLocation)
+
+            // 状态改变时触发回调
+            if isHovering && !wasHovering {
+                handleMouseEntered()
+            } else if !isHovering && wasHovering {
+                handleMouseExited()
+            }
         }
     }
 
@@ -236,8 +248,17 @@ class UnderlineView: NSView {
         hoverDebounceTimer?.invalidate()
         hoverDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
             guard let self = self, let callback = self.onHovered else { return }
-            print("🖱️ [UnderlineView] Calling onHovered callback after debounce")
-            callback(self.text)
+
+            Task { @MainActor in
+                // 如果已经有弹窗在显示，不触发新的弹窗
+                if OverlayWindowManager.shared.hasActivePopup() {
+                    print("🖱️ [UnderlineView] Popup already active, skipping hover callback")
+                    return
+                }
+
+                print("🖱️ [UnderlineView] Calling onHovered callback after debounce")
+                callback(self.text)
+            }
         }
     }
 
@@ -361,6 +382,11 @@ class OverlayWindowManager {
         currentTranslationPopup = nil
     }
 
+    /// 检查是否有弹窗正在显示
+    func hasActivePopup() -> Bool {
+        return currentTranslationPopup != nil
+    }
+
     /// 检查鼠标是否在弹窗内
     func isMouseInPopup() -> Bool {
         guard let popup = currentTranslationPopup else { return false }
@@ -471,7 +497,7 @@ class OverlayWindowManager {
         )
 
         // 窗口配置
-        popupPanel.level = .floating               // 浮动级别，确保在所有窗口之上
+        popupPanel.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.floatingWindow)) + 2)  // 比下划线窗口更高的层级
         popupPanel.isMovableByWindowBackground = false  // 不可通过背景拖动
         popupPanel.hidesOnDeactivate = false       // 不自动隐藏（手动控制）
         popupPanel.isOpaque = false                // 透明窗口
