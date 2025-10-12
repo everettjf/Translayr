@@ -4,10 +4,13 @@ import AppKit
 /// 菜单栏视图：展示监控状态以及常用操作
 struct MenuBarView: View {
     @ObservedObject var accessibilityMonitor: AccessibilityMonitor
+    @AppStorage("isTranslayrEnabled") private var isTranslayrEnabled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             statusSection
+            Divider()
+            enableToggle
             Divider()
             controlButtons
         }
@@ -22,6 +25,23 @@ struct MenuBarView: View {
                 .font(.headline)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var enableToggle: some View {
+        Toggle(isOn: $isTranslayrEnabled) {
+            Label("Enable Translayr", systemImage: isTranslayrEnabled ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isTranslayrEnabled ? .green : .secondary)
+        }
+        .toggleStyle(.switch)
+        .onChange(of: isTranslayrEnabled) { oldValue, newValue in
+            if newValue {
+                SpellCheckMonitor.shared.startMonitoring()
+            } else {
+                SpellCheckMonitor.shared.stopMonitoring()
+                OverlayWindowManager.shared.hideAll()
+                OverlayWindowManager.shared.closeTranslationPopup()
+            }
+        }
     }
 
     private var controlButtons: some View {

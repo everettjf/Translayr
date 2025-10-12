@@ -33,6 +33,8 @@ struct SettingsView: View {
                 ColorSettingsView()
             case .models:
                 ModelsSettingsView()
+            case .shortcuts:
+                ShortcutsSettingsView()
             case .skipApps:
                 SkipAppsSettingsView()
             case .about:

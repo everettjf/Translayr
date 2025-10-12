@@ -13,6 +13,7 @@ enum PreferencesSection: String, CaseIterable, Identifiable {
     case general = "General"
     case language = "Language"
     case models = "Models"
+    case shortcuts = "Shortcuts"
     case skipApps = "Skip Apps"
     case color = "Color"
     case about = "About"
@@ -25,6 +26,7 @@ enum PreferencesSection: String, CaseIterable, Identifiable {
         case .language: return "globe"
         case .color: return "paintpalette"
         case .models: return "cpu"
+        case .shortcuts: return "keyboard"
         case .skipApps: return "eraser"
         case .about: return "info.circle"
         }
