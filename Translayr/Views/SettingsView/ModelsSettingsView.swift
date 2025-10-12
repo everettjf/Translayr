@@ -196,14 +196,11 @@ struct ModelsSettingsView: View {
 
             let client = Ollama.Client(host: hostURL)
             let response = try await client.listModels()
-            let models = response.models.sorted { lhs, rhs in
-                lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
+            // 保持 Ollama 返回的原始顺序，不进行排序
+            availableModels = response.models
 
-            availableModels = models
-
-            if let firstModel = models.first,
-               models.contains(where: { $0.name == selectedModel }) == false {
+            if let firstModel = response.models.first,
+               response.models.contains(where: { $0.name == selectedModel }) == false {
                 selectedModel = firstModel.name
             }
 
