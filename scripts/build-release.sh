@@ -4,7 +4,12 @@
 # 完整的构建、签名、公证、打包流程
 #
 # 使用方法:
-#   ./scripts/build-release.sh 1.0.0
+#   ./scripts/build-release.sh
+#
+# 注意: 版本号会自动从 Info.plist 读取
+# 如需更新版本，请先运行:
+#   ./scripts/increment-version.sh  # 递增版本号
+#   ./scripts/increment-build.sh    # 递增构建号
 #
 
 set -e  # 遇到错误立即退出
@@ -34,20 +39,29 @@ warning() {
     echo -e "${YELLOW}⚠️  $1${NC}"
 }
 
-# 检查参数
-if [ $# -eq 0 ]; then
-    error "Usage: $0 <version>\nExample: $0 1.0.0"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
+
+# 检查 Info.plist 是否存在
+if [ ! -f "$PLIST_PATH" ]; then
+    error "Info.plist not found at $PLIST_PATH"
 fi
 
-VERSION=$1
-PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# 从 Info.plist 读取版本号
+VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH")
+BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH")
+
+if [ -z "$VERSION" ]; then
+    error "CFBundleShortVersionString not found in Info.plist"
+fi
+
 BUILD_DIR="$PROJECT_ROOT/build"
 ARCHIVE_PATH="$BUILD_DIR/Translayr.xcarchive"
 EXPORT_DIR="$BUILD_DIR/export"
 APP_NAME="Translayr"
 APP_PATH="$EXPORT_DIR/$APP_NAME.app"
 
-info "Building Translayr version $VERSION"
+info "Building Translayr version $VERSION (build $BUILD_NUMBER)"
 info "Project root: $PROJECT_ROOT"
 
 # 加载环境变量
@@ -72,26 +86,14 @@ if [ -z "$TEAM_ID" ]; then
 fi
 
 # 步骤 1: 清理旧的构建文件
-info "Step 1/7: Cleaning build directory..."
+info "Step 1/6: Cleaning build directory..."
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 mkdir -p "$EXPORT_DIR"
 success "Build directory cleaned"
 
-# 步骤 2: 更新版本号
-info "Step 2/7: Updating version number to $VERSION..."
-PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
-
-if [ ! -f "$PLIST_PATH" ]; then
-    error "Info.plist not found at $PLIST_PATH"
-fi
-
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST_PATH"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST_PATH"
-success "Version updated to $VERSION"
-
-# 步骤 3: 构建 Archive
-info "Step 3/7: Building archive..."
+# 步骤 2: 构建 Archive
+info "Step 2/6: Building archive..."
 cd "$PROJECT_ROOT"
 
 xcodebuild archive \
@@ -103,8 +105,8 @@ xcodebuild archive \
 
 success "Archive created at $ARCHIVE_PATH"
 
-# 步骤 4: 导出 App
-info "Step 4/7: Exporting application..."
+# 步骤 3: 导出 App
+info "Step 3/6: Exporting application..."
 
 # 检查 ExportOptions.plist 是否存在
 EXPORT_OPTIONS="$PROJECT_ROOT/ExportOptions.plist"
@@ -120,8 +122,8 @@ xcodebuild -exportArchive \
 
 success "Application exported to $EXPORT_DIR"
 
-# 步骤 5: 签名
-info "Step 5/7: Signing application..."
+# 步骤 4: 签名
+info "Step 4/6: Signing application..."
 
 codesign --deep --force --verify --verbose \
     --sign "$DEVELOPER_ID_APPLICATION" \
@@ -135,8 +137,8 @@ spctl --assess --type execute --verbose=4 "$APP_PATH" || warning "Gatekeeper ass
 
 success "Application signed successfully"
 
-# 步骤 6: 创建 DMG
-info "Step 6/7: Creating DMG..."
+# 步骤 5: 创建 DMG
+info "Step 5/6: Creating DMG..."
 
 DMG_NAME="$APP_NAME-$VERSION.dmg"
 DMG_PATH="$BUILD_DIR/$DMG_NAME"
@@ -167,8 +169,8 @@ create-dmg \
 
 success "DMG created at $DMG_PATH"
 
-# 步骤 7: 公证
-info "Step 7/7: Notarizing application..."
+# 步骤 6: 公证
+info "Step 6/6: Notarizing application..."
 
 # 上传公证
 info "Uploading to Apple for notarization (this may take a few minutes)..."
