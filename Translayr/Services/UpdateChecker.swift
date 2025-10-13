@@ -9,6 +9,10 @@ import Foundation
 import SwiftUI
 import Combine
 
+
+// New releases
+// https://github.com/xnuapp/TranslayrRelease
+
 /// GitHub Release 响应结构
 struct GitHubRelease: Codable {
     let tagName: String

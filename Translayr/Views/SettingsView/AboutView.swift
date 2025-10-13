@@ -104,6 +104,13 @@ struct AboutView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
+                
+//                Button {
+//                    fatalError("Break the world")
+//                } label: {
+//                    Label("Break the world", systemImage: "figure.run")
+//                }
+
             }
 
             Spacer()

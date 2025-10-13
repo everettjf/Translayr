@@ -7,6 +7,7 @@
 
 import SwiftUI
 import TelemetryDeck
+import Sentry
 
 @main
 struct TranslayrApp: App {
@@ -42,6 +43,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // sdk: https://telemetrydeck.com/docs/guides/swift-setup/
         // dashboard: https://dashboard.telemetrydeck.com/apps/675A16AE-4E72-4AF8-A128-E1E416B5C3A0
         TelemetryDeck.initialize(config: .init(appID: "675A16AE-4E72-4AF8-A128-E1E416B5C3A0"))
+        
+        // crash list: https://xnu.sentry.io/issues/
+        SentrySDK.start { options in
+            options.dsn = "https://b872f0c33b8952a7f496ccea32dc623d@o4510180697636864.ingest.us.sentry.io/4510180700258304"
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true
+        }
+
 
         // 注册系统服务
         _ = SystemServiceProvider.shared
