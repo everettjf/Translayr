@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import Combine
 
 /// GitHub Release 响应结构
 struct GitHubRelease: Codable {
@@ -28,7 +29,6 @@ struct GitHubRelease: Codable {
 }
 
 /// 版本检测服务
-@MainActor
 class UpdateChecker: ObservableObject {
     static let shared = UpdateChecker()
 
@@ -71,12 +71,14 @@ class UpdateChecker: ObservableObject {
     func checkForUpdates(silent: Bool = false) {
         guard !isChecking else { return }
 
-        isChecking = true
-        errorMessage = nil
+        Task { @MainActor in
+            isChecking = true
+            errorMessage = nil
 
-        Task {
             do {
                 let release = try await fetchLatestRelease()
+
+                // 在主线程更新 UI
                 self.latestRelease = release
 
                 // 保存检查时间
