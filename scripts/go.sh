@@ -17,6 +17,9 @@ echo "Building release"
 ./scripts/build-release.sh
 
 
+echo "Open release site"
+open https://github.com/xnuapp/TranslayrRelease/releases
+
 echo "✅Done"
 echo "
  _    _                                 _              _             
