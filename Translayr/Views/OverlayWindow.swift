@@ -355,7 +355,7 @@ class OverlayWindowManager {
         }
     }
 
-    /// 隐藏所有下划线窗口
+    /// 隐藏所有下划线窗口和翻译弹窗
     func hideAll() {
         // 遍历所有窗口并隐藏
         for window in overlayWindows.values {
@@ -363,6 +363,9 @@ class OverlayWindowManager {
         }
         // 清空窗口字典
         overlayWindows.removeAll()
+
+        // 关闭翻译弹窗（如果有）
+        closeTranslationPopup()
     }
 
     /// 关闭翻译弹窗

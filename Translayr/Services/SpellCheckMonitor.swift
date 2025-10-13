@@ -64,6 +64,32 @@ class SpellCheckMonitor: ObservableObject {
                 self?.updateOverlayPositions()
             }
             .store(in: &cancellables)
+
+        // 监听屏幕/空间切换 - 使用多个通知提高灵敏度
+
+        // 通知 1: 活动空间改变（Mission Control 切换桌面）
+        NotificationCenter.default.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
+                self?.overlayManager.hideAll()
+                print("🖥️ [SpellCheckMonitor] Active space changed, hiding all overlays")
+            }
+            .store(in: &cancellables)
+
+        // 通知 2: 屏幕参数改变（分辨率、显示器配置变化）
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .sink { [weak self] _ in
+                self?.overlayManager.hideAll()
+                print("🖥️ [SpellCheckMonitor] Screen parameters changed, hiding all overlays")
+            }
+            .store(in: &cancellables)
+
+        // 通知 3: 工作区切换开始（Mission Control 动画开始时就隐藏）
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
+            .sink { [weak self] _ in
+                self?.overlayManager.hideAll()
+                print("🖥️ [SpellCheckMonitor] Workspace space changed, hiding all overlays")
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public Methods（公共方法）

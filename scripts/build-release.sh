@@ -222,3 +222,6 @@ echo ""
 if command -v open &> /dev/null; then
     open "$BUILD_DIR"
 fi
+
+
+rm -rf "$EXPORT_DIR"
