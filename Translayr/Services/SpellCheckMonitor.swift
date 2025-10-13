@@ -90,6 +90,27 @@ class SpellCheckMonitor: ObservableObject {
                 print("🖥️ [SpellCheckMonitor] Workspace space changed, hiding all overlays")
             }
             .store(in: &cancellables)
+
+        // 监听文本框滚动 - 立即隐藏下划线
+        accessibilityMonitor.$textScrolled
+            .dropFirst()  // 跳过初始值
+            .sink { [weak self] _ in
+                // 文本框滚动时，立即隐藏下划线
+                self?.overlayManager.hideAll()
+                print("📜 [SpellCheckMonitor] Text scrolled, hiding overlays")
+            }
+            .store(in: &cancellables)
+
+        // 监听文本框滚动 - 等待稳定后再显示下划线
+        accessibilityMonitor.$textScrolled
+            .dropFirst()  // 跳过初始值
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)  // 1秒防抖，等待滚动停止
+            .sink { [weak self] _ in
+                // 滚动停止 1 秒后，重新显示下划线
+                print("📜 [SpellCheckMonitor] Scroll stable, showing overlays")
+                self?.updateOverlayPositions()
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public Methods（公共方法）

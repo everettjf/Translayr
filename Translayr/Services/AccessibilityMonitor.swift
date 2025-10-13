@@ -29,6 +29,9 @@ class AccessibilityMonitor: ObservableObject {
     /// 窗口位置是否发生变化（用于触发 overlay 位置更新）
     @Published var windowPositionChanged: Bool = false
 
+    /// 文本框是否发生滚动（用于隐藏 overlay）
+    @Published var textScrolled: Bool = false
+
     // MARK: - Private Properties（私有属性）
 
     /// 当前聚焦的元素引用
@@ -48,6 +51,9 @@ class AccessibilityMonitor: ObservableObject {
 
     /// 上一次窗口位置 - 用于检测位置是否真的变化了
     private var lastWindowPosition: NSPoint?
+
+    /// 上一次文本元素的屏幕位置 - 用于检测滚动
+    private var lastElementPosition: NSPoint?
 
     private init() {}
 
@@ -115,6 +121,7 @@ class AccessibilityMonitor: ObservableObject {
         currentWindow = nil
         windowObserver = nil
         lastWindowPosition = nil
+        lastElementPosition = nil
     }
 
     // MARK: - Private Methods
@@ -447,6 +454,7 @@ class AccessibilityMonitor: ObservableObject {
                 print("🪟 [AccessibilityMonitor] Updating tracked window")
                 currentWindow = window
                 lastWindowPosition = nil  // 重置位置记录
+                lastElementPosition = nil  // 重置元素位置记录
                 setupWindowNotifications(for: window, pid: pid)
             }
         } else {
@@ -494,18 +502,18 @@ class AccessibilityMonitor: ObservableObject {
         windowPositionChanged.toggle()
     }
 
-    /// 定期检查窗口位置（作为通知机制的备用方案）
+    /// 定期检查窗口位置和元素滚动（作为通知机制的备用方案）
     /// 某些应用可能不触发窗口通知，定时检查可以确保位置更新
     private func checkWindowPosition() {
-        guard let window = currentWindow, currentElement != nil else {
+        guard let window = currentWindow, let element = currentElement else {
             return
         }
 
-        // 获取当前窗口位置
+        // 1. 检查窗口位置变化
         var positionValue: AnyObject?
-        let error = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
+        let windowError = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
 
-        if error == .success, let value = positionValue {
+        if windowError == .success, let value = positionValue {
             var point = CGPoint.zero
             if AXValueGetValue(value as! AXValue, .cgPoint, &point) {
                 let currentPosition = NSPoint(x: point.x, y: point.y)
@@ -525,6 +533,27 @@ class AccessibilityMonitor: ObservableObject {
                     // 第一次记录位置
                     lastWindowPosition = currentPosition
                 }
+            }
+        }
+
+        // 2. 检查元素滚动（通过检测元素屏幕位置变化）
+        // 如果文本内容没变但元素的屏幕位置变了，说明发生了滚动
+        if let firstCharBounds = getBoundsForSingleChar(at: 0) {
+            let currentElementPosition = NSPoint(x: firstCharBounds.origin.x, y: firstCharBounds.origin.y)
+
+            if let lastPosition = lastElementPosition {
+                let dx = abs(currentElementPosition.x - lastPosition.x)
+                let dy = abs(currentElementPosition.y - lastPosition.y)
+
+                // 元素位置变化超过 5 像素，说明发生了滚动
+                if dx > 5 || dy > 5 {
+                    print("📜 [AccessibilityMonitor] Element scrolled: \(lastPosition) -> \(currentElementPosition)")
+                    lastElementPosition = currentElementPosition
+                    textScrolled.toggle()
+                }
+            } else {
+                // 第一次记录元素位置
+                lastElementPosition = currentElementPosition
             }
         }
     }

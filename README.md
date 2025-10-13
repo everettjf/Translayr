@@ -30,6 +30,7 @@ Translayr 是一款专为 macOS 设计的**系统级智能翻译助手**。它�
 - **弹窗式翻译**: 点击下划线即显示翻译结果弹窗
 - **一键替换**: 点击翻译结果直接在原应用中替换文本
 - **自适应位置**: 翻译弹窗智能定位，避免遮挡文本
+- **智能隐藏**: 窗口拖动、滚动或切换屏幕时自动隐藏下划线，体验流畅
 
 ### 🔒 隐私保护
 - **完全本地处理**: 所有翻译在本地完成，数据不离开你的设备
@@ -42,6 +43,7 @@ Translayr 是一款专为 macOS 设计的**系统级智能翻译助手**。它�
 - **应用过滤**: 设置跳过监控的应用列表
 - **模型选择**: 支持多种 Ollama 模型
 - **菜单栏集成**: 便捷的菜单栏快速访问
+- **自动更新**: 基于 GitHub Releases 的版本检查和更新提醒
 
 ## 📸 使用场景
 
@@ -194,12 +196,13 @@ Translayr/
 │   │   └── SpellAnalyzing.swift     # 拼写分析协议
 │   │
 │   ├── Services/
-│   │   ├── AccessibilityMonitor.swift    # 辅助功能监控器（文本获取）
+│   │   ├── AccessibilityMonitor.swift    # 辅助功能监控器（文本获取、滚动检测）
 │   │   ├── SpellCheckMonitor.swift       # 拼写检查监控器（核心协调）
 │   │   ├── SpellService.swift            # 拼写服务（翻译逻辑）
 │   │   ├── LocalModelClient.swift        # Ollama 客户端
 │   │   ├── SystemServiceProvider.swift   # 系统服务提供者
-│   │   └── LanguageConfig.swift          # 语言配置管理
+│   │   ├── LanguageConfig.swift          # 语言配置管理
+│   │   └── UpdateChecker.swift           # 版本更新检查服务
 │   │
 │   ├── Views/
 │   │   ├── OverlayWindow.swift          # 浮动下划线窗口
@@ -218,11 +221,57 @@ Translayr/
 │   └── Info.plist                   # 应用配置
 │
 ├── TranslayrTests/                     # 单元测试
+├── scripts/
+│   ├── build-release.sh             # 完整发布构建脚本（签名、公证、打包）
+│   ├── increment-build.sh           # 递增构建号脚本
+│   ├── increment-version.sh         # 递增版本号脚本
+│   └── sign-and-notarize.sh         # 独立签名和公证脚本
 ├── README.md                        # 项目说明（本文件）
 ├── DOCUMENT.md                      # 详细文档
 ├── USAGE.md                         # 使用指南
 ├── SYSTEM_SERVICE.md                # 系统服务集成说明
-└── Agents.md                        # AI Agent 相关文档
+├── BUILD_RELEASE.md                 # 发布构建详细说明
+├── QUICK_START.md                   # 5分钟快速开始指南
+└── AGENTS.md                        # AI Agent 相关文档
+```
+
+## 🔨 开发者指南
+
+### 构建发布版本
+
+项目提供了完整的自动化构建脚本，支持代码签名和 Apple 公证：
+
+```bash
+# 1. 递增版本号（可选）
+./scripts/increment-version.sh  # 1.0.0 → 1.0.1
+./scripts/increment-build.sh    # Build: 1 → 2
+
+# 2. 构建发布版本（自动从 Info.plist 读取版本）
+./scripts/build-release.sh
+
+# 输出: build/Translayr-{version}.dmg
+```
+
+**构建流程包括：**
+1. 清理构建目录
+2. Archive 项目
+3. 导出 .app
+4. 代码签名（Developer ID）
+5. 创建 DMG
+6. Apple 公证（Notarization）
+7. 装订公证票据（Stapling）
+
+详细说明请参考 [BUILD_RELEASE.md](BUILD_RELEASE.md)。
+
+### 快速开发迭代
+
+```bash
+# 在 Xcode 中直接运行
+open Translayr.xcodeproj
+# 按 ⌘ + R 运行
+
+# 或使用命令行
+xcodebuild -scheme Translayr -configuration Debug
 ```
 
 ## ⚙️ 配置说明
@@ -331,6 +380,11 @@ UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
 - [x] 多种配置选项
 - [x] 应用跳过列表
 - [x] 自定义颜色
+- [x] 窗口拖动时智能隐藏下划线
+- [x] 滚动时自动隐藏下划线
+- [x] 多屏幕/空间切换检测
+- [x] 自动更新检查（GitHub Releases）
+- [x] 完整的发布构建流程（签名、公证）
 
 ### 计划中 🎯
 - [ ] 快捷键支持（全局热键）

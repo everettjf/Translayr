@@ -201,7 +201,22 @@ fi
 
 # 最终验证
 info "Performing final verification..."
-spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_PATH"
+
+# 验证 DMG 的公证票据
+info "Verifying notarization ticket on DMG..."
+if xcrun stapler validate "$DMG_PATH" 2>&1 | grep -q "is already validated"; then
+    success "DMG notarization ticket is valid"
+else
+    xcrun stapler validate "$DMG_PATH"
+fi
+
+# 验证 .app 签名（已在步骤 4 中完成，这里再次确认）
+info "Verifying app signature..."
+codesign --verify --deep --strict "$APP_PATH" && success "App signature is valid"
+
+# 注意：spctl 对 DMG 文件的验证不适用
+# DMG 是一个容器格式，真正需要验证的是其中的 .app
+# 已通过公证和装订的 DMG 在用户下载后会被 Gatekeeper 自动验证
 
 # 完成
 echo ""
