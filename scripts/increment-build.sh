@@ -17,10 +17,17 @@ NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
+PBXPROJ_PATH="$PROJECT_ROOT/Translayr.xcodeproj/project.pbxproj"
 
 # 检查 Info.plist 是否存在
 if [ ! -f "$PLIST_PATH" ]; then
     echo -e "${RED}❌ Info.plist not found at $PLIST_PATH${NC}"
+    exit 1
+fi
+
+# 检查 project.pbxproj 是否存在
+if [ ! -f "$PBXPROJ_PATH" ]; then
+    echo -e "${RED}❌ project.pbxproj not found at $PBXPROJ_PATH${NC}"
     exit 1
 fi
 
@@ -39,5 +46,9 @@ NEW_BUILD=$((CURRENT_BUILD + 1))
 # 更新 Info.plist
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_BUILD" "$PLIST_PATH"
 
+# 更新 project.pbxproj (同时更新 Debug 和 Release 配置)
+sed -i '' "s/CURRENT_PROJECT_VERSION = $CURRENT_BUILD;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" "$PBXPROJ_PATH"
+
 echo -e "${BLUE}ℹ️  Build Number:${NC} $CURRENT_BUILD → ${GREEN}$NEW_BUILD${NC}"
 echo -e "${GREEN}✅ Build number incremented successfully${NC}"
+echo -e "${GREEN}✅ Xcode project configuration updated${NC}"

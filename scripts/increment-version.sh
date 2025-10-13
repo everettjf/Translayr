@@ -21,10 +21,17 @@ NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
+PBXPROJ_PATH="$PROJECT_ROOT/Translayr.xcodeproj/project.pbxproj"
 
 # 检查 Info.plist 是否存在
 if [ ! -f "$PLIST_PATH" ]; then
     echo -e "${RED}❌ Info.plist not found at $PLIST_PATH${NC}"
+    exit 1
+fi
+
+# 检查 project.pbxproj 是否存在
+if [ ! -f "$PBXPROJ_PATH" ]; then
+    echo -e "${RED}❌ project.pbxproj not found at $PBXPROJ_PATH${NC}"
     exit 1
 fi
 
@@ -50,5 +57,11 @@ NEW_VERSION=$(IFS='.'; echo "${VERSION_PARTS[*]}")
 # 更新 Info.plist
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW_VERSION" "$PLIST_PATH"
 
+# 更新 project.pbxproj (同时更新 Debug 和 Release 配置)
+# 需要转义点号，因为 sed 中点号是正则表达式的特殊字符
+CURRENT_VERSION_ESCAPED=$(echo "$CURRENT_VERSION" | sed 's/\./\\./g')
+sed -i '' "s/MARKETING_VERSION = $CURRENT_VERSION_ESCAPED;/MARKETING_VERSION = $NEW_VERSION;/g" "$PBXPROJ_PATH"
+
 echo -e "${BLUE}ℹ️  Version:${NC} $CURRENT_VERSION → ${GREEN}$NEW_VERSION${NC}"
 echo -e "${GREEN}✅ Version incremented successfully${NC}"
+echo -e "${GREEN}✅ Xcode project configuration updated${NC}"
