@@ -46,6 +46,9 @@ class AccessibilityMonitor: ObservableObject {
     /// 位置更新定时器 - 定期检查窗口位置（作为通知的备用方案）
     private var positionUpdateTimer: Timer?
 
+    /// 上一次窗口位置 - 用于检测位置是否真的变化了
+    private var lastWindowPosition: NSPoint?
+
     private init() {}
 
     // MARK: - Accessibility Permission
@@ -111,6 +114,7 @@ class AccessibilityMonitor: ObservableObject {
         focusedElement = nil
         currentWindow = nil
         windowObserver = nil
+        lastWindowPosition = nil
     }
 
     // MARK: - Private Methods
@@ -442,6 +446,7 @@ class AccessibilityMonitor: ObservableObject {
             if currentWindow == nil || !CFEqual(currentWindow, window) {
                 print("🪟 [AccessibilityMonitor] Updating tracked window")
                 currentWindow = window
+                lastWindowPosition = nil  // 重置位置记录
                 setupWindowNotifications(for: window, pid: pid)
             }
         } else {
@@ -500,9 +505,27 @@ class AccessibilityMonitor: ObservableObject {
         var positionValue: AnyObject?
         let error = AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionValue)
 
-        if error == .success {
-            // 定期触发更新，由 SpellCheckMonitor 决定是否需要更新 overlay
-            windowPositionChanged.toggle()
+        if error == .success, let value = positionValue {
+            var point = CGPoint.zero
+            if AXValueGetValue(value as! AXValue, .cgPoint, &point) {
+                let currentPosition = NSPoint(x: point.x, y: point.y)
+
+                // 只有位置真的变化了才触发更新
+                if let lastPosition = lastWindowPosition {
+                    let dx = abs(currentPosition.x - lastPosition.x)
+                    let dy = abs(currentPosition.y - lastPosition.y)
+
+                    // 移动超过 1 像素才算真正移动（避免浮点误差）
+                    if dx > 1 || dy > 1 {
+                        print("🪟 [AccessibilityMonitor] Window position changed: \(lastPosition) -> \(currentPosition)")
+                        lastWindowPosition = currentPosition
+                        windowPositionChanged.toggle()
+                    }
+                } else {
+                    // 第一次记录位置
+                    lastWindowPosition = currentPosition
+                }
+            }
         }
     }
 

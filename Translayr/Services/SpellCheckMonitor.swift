@@ -44,11 +44,23 @@ class SpellCheckMonitor: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // 监听窗口位置变化 - 更新 overlay 位置
+        // 监听窗口位置变化 - 优化拖动体验
         accessibilityMonitor.$windowPositionChanged
             .dropFirst()  // 跳过初始值
-            .debounce(for: .milliseconds(50), scheduler: RunLoop.main)  // 短防抖，快速响应位置变化
             .sink { [weak self] _ in
+                // 窗口开始移动时，立即隐藏下划线（提升拖动流畅度）
+                self?.overlayManager.hideAll()
+                print("🪟 [SpellCheckMonitor] Window moving, hiding overlays")
+            }
+            .store(in: &cancellables)
+
+        // 监听窗口位置变化 - 等待稳定后再显示下划线
+        accessibilityMonitor.$windowPositionChanged
+            .dropFirst()  // 跳过初始值
+            .debounce(for: .seconds(2), scheduler: RunLoop.main)  // 2秒防抖，等待窗口稳定
+            .sink { [weak self] _ in
+                // 窗口停止移动 2 秒后，重新显示下划线
+                print("🪟 [SpellCheckMonitor] Window stable, showing overlays")
                 self?.updateOverlayPositions()
             }
             .store(in: &cancellables)
