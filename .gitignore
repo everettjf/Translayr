@@ -1,3 +1,37 @@
+# Build artifacts
 build/
+*.xcarchive
+*.ipa
+*.app
+*.dmg
+*.pkg
+
+# Xcode
 Translayr.xcodeproj/project.xcworkspace/xcuserdata
 Translayr.xcodeproj/project.xcworkspace/xcshareddata
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Release configuration (contains sensitive credentials)
+.env
+
+# macOS
+.DS_Store
+*.swp
+*~.nib
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# SPM
+.swiftpm/
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output

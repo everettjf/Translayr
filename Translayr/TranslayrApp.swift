@@ -46,6 +46,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.setupMainWindow()
         }
+
+        // 自动检查更新（每天一次）
+        Task { @MainActor in
+            if UpdateChecker.shared.shouldAutoCheck() {
+                print("🔍 Auto-checking for updates...")
+                UpdateChecker.shared.checkForUpdates(silent: true)
+            }
+        }
     }
 
     private func setupMainWindow() {

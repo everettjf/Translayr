@@ -4,10 +4,17 @@ import AppKit
 /// 菜单栏视图：展示监控状态以及常用操作
 struct MenuBarView: View {
     @ObservedObject var accessibilityMonitor: AccessibilityMonitor
+    @StateObject private var updateChecker = UpdateChecker.shared
     @AppStorage("isTranslayrEnabled") private var isTranslayrEnabled = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // 显示更新提示（如果有新版本）
+            if updateChecker.hasNewVersion {
+                updateNotificationSection
+                Divider()
+            }
+
             statusSection
             enableButton
             Divider()
@@ -16,6 +23,45 @@ struct MenuBarView: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
         .frame(minWidth: 250)
+    }
+
+    // 更新通知部分
+    private var updateNotificationSection: some View {
+        Button {
+            updateChecker.openReleasesPage()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 16))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("New Update Available")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    if let release = updateChecker.latestRelease {
+                        Text("Version \(release.tagName)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: 12))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.green.opacity(0.1))
+        )
     }
 
     private var statusSection: some View {
