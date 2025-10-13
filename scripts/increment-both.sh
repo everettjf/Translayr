@@ -1,3 +1,3 @@
 #!/bin/sh
-./increment-build.sh
-./increment-version.sh
+./scripts/increment-build.sh
+./scripts/increment-version.sh
