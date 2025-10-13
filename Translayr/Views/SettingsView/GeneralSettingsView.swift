@@ -117,7 +117,7 @@ struct GeneralSettingsView: View {
             Button("Open System Settings") {
                 openSystemPreferences()
             }
-            Button("Later", role: .cancel) { }
+            Button("OK", role: .cancel) { }
         } message: {
             Text("Translayr needs accessibility permission to monitor text input in other apps.\n\nPlease go to:\nSystem Settings → Privacy & Security → Accessibility\n\nand enable Translayr.")
         }

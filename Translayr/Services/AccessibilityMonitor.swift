@@ -319,10 +319,87 @@ class AccessibilityMonitor: ObservableObject {
             var rect = CGRect.zero
             if AXValueGetValue(value as! AXValue, .cgRect, &rect) {
                 print("✅ [AccessibilityMonitor] Got bounds for range \(range): \(rect)")
+
+                // 修复：检测异常边界（高度过大可能包含多行或换行符）
+                // 总是获取第一个字符的边界作为参考，确保准确性
+                if range.length > 0, let firstCharBounds = getBoundsForSingleChar(at: range.location) {
+                    // 典型的文本行高在 14-30 像素之间
+                    let maxReasonableLineHeight: CGFloat = 35
+
+                    // 情况1：高度异常大（超过阈值）
+                    if rect.height > maxReasonableLineHeight {
+                        print("⚠️ [AccessibilityMonitor] Detected abnormal height (\(rect.height)), using first char bounds")
+                        let fixedRect = NSRect(
+                            x: rect.origin.x,
+                            y: firstCharBounds.origin.y,
+                            width: rect.width,
+                            height: firstCharBounds.height
+                        )
+                        print("✅ [AccessibilityMonitor] Fixed bounds: \(fixedRect)")
+                        return fixedRect
+                    }
+
+                    // 情况2：Y 坐标偏移过大（可能跨行了）
+                    let yOffset = abs(rect.origin.y - firstCharBounds.origin.y)
+                    if yOffset > 5 {  // Y 坐标偏移超过 5 像素
+                        print("⚠️ [AccessibilityMonitor] Detected Y offset (\(yOffset)), using first char bounds")
+                        let fixedRect = NSRect(
+                            x: rect.origin.x,
+                            y: firstCharBounds.origin.y,
+                            width: rect.width,
+                            height: firstCharBounds.height
+                        )
+                        print("✅ [AccessibilityMonitor] Fixed bounds: \(fixedRect)")
+                        return fixedRect
+                    }
+
+                    // 情况3：高度明显不一致（可能包含了额外的空白）
+                    let heightDiff = abs(rect.height - firstCharBounds.height)
+                    if heightDiff > 10 {  // 高度差异超过 10 像素
+                        print("⚠️ [AccessibilityMonitor] Detected height inconsistency (\(heightDiff)), using first char bounds")
+                        let fixedRect = NSRect(
+                            x: rect.origin.x,
+                            y: firstCharBounds.origin.y,
+                            width: rect.width,
+                            height: firstCharBounds.height
+                        )
+                        print("✅ [AccessibilityMonitor] Fixed bounds: \(fixedRect)")
+                        return fixedRect
+                    }
+                }
+
                 return rect
             }
         } else {
             print("⚠️ [AccessibilityMonitor] Failed to get bounds for range: error \(error.rawValue)")
+        }
+
+        return nil
+    }
+
+    /// 获取单个字符的边界（用于修复异常边界）
+    /// - Parameter location: 字符位置
+    /// - Returns: 字符的边界矩形，如果无法获取则返回 nil
+    private func getBoundsForSingleChar(at location: Int) -> NSRect? {
+        guard let element = currentElement else { return nil }
+
+        let cfRange = CFRange(location: location, length: 1)
+        var cfRangeValue = cfRange
+        guard let rangeValue = AXValueCreate(.cfRange, &cfRangeValue) else { return nil }
+
+        var boundsValue: AnyObject?
+        let error = AXUIElementCopyParameterizedAttributeValue(
+            element,
+            kAXBoundsForRangeParameterizedAttribute as CFString,
+            rangeValue,
+            &boundsValue
+        )
+
+        if error == .success, let value = boundsValue {
+            var rect = CGRect.zero
+            if AXValueGetValue(value as! AXValue, .cgRect, &rect) {
+                return rect
+            }
         }
 
         return nil
