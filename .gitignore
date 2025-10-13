@@ -13,8 +13,6 @@ Translayr.xcodeproj/project.xcworkspace/xcshareddata
 xcuserdata/
 DerivedData/
 
-# Release configuration (contains sensitive credentials)
-.env
 
 # macOS
 .DS_Store

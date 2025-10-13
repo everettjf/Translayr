@@ -99,11 +99,7 @@ xcodebuild archive \
     -configuration Release \
     -archivePath "$ARCHIVE_PATH" \
     -destination "generic/platform=macOS" \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
-    CODE_SIGN_STYLE=Manual \
-    DEVELOPMENT_TEAM="$TEAM_ID" \
-    -allowProvisioningUpdates \
-    | xcpretty || error "Archive build failed"
+    || error "Archive build failed"
 
 success "Archive created at $ARCHIVE_PATH"
 
@@ -120,7 +116,7 @@ xcodebuild -exportArchive \
     -archivePath "$ARCHIVE_PATH" \
     -exportPath "$EXPORT_DIR" \
     -exportOptionsPlist "$EXPORT_OPTIONS" \
-    | xcpretty || error "Export failed"
+    || error "Export failed"
 
 success "Application exported to $EXPORT_DIR"
 

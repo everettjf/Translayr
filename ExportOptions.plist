@@ -2,36 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- 导出方法: developer-id (用于在 Mac App Store 外分发) -->
+	<!-- 导出方法: development (不签名，稍后手动签名) -->
 	<key>method</key>
-	<string>developer-id</string>
+	<string>development</string>
 
 	<!-- 目标平台 -->
 	<key>destination</key>
 	<string>export</string>
 
-	<!-- 签名风格: manual (手动指定签名) -->
-	<key>signingStyle</key>
-	<string>manual</string>
-
-	<!-- 是否上传符号表到 Apple -->
-	<key>uploadSymbols</key>
-	<true/>
-
 	<!-- 是否编译 bitcode (macOS 不需要) -->
 	<key>compileBitcode</key>
 	<false/>
 
-	<!-- 是否在导出时进行签名 -->
-	<key>signingCertificate</key>
-	<string>Developer ID Application</string>
-
-	<!-- 签名选项 -->
-	<key>provisioningProfiles</key>
-	<dict/>
-
-	<!-- Team ID (会从 .env 中的 TEAM_ID 获取，这里留空) -->
-	<key>teamID</key>
-	<string>TEAM_ID_PLACEHOLDER</string>
+	<!-- 不在导出时签名，稍后用 codesign 手动签名 -->
+	<key>signingStyle</key>
+	<string>automatic</string>
 </dict>
 </plist>

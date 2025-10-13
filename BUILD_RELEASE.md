@@ -55,11 +55,6 @@ xcode-select --install
 brew install create-dmg
 ```
 
-#### xcpretty (可选，美化输出)
-```bash
-gem install xcpretty
-```
-
 ---
 
 ## 首次配置
