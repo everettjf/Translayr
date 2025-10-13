@@ -133,6 +133,7 @@ class UpdateChecker: ObservableObject {
     /// 从 GitHub API 获取最新 release
     private func fetchLatestRelease() async throws -> GitHubRelease {
         let urlString = "https://api.github.com/repos/\(githubOwner)/\(githubRepo)/releases/latest"
+        print(urlString)
 
         guard let url = URL(string: urlString) else {
             throw UpdateError.invalidURL
