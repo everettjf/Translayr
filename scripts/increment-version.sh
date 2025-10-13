@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # increment-version.sh
-# 递增 Version 的最后一位 (CFBundleShortVersionString)
+# 递增 Version 的最后一位 (MARKETING_VERSION)
 #
 # 使用方法:
 #   ./scripts/increment-version.sh
@@ -9,6 +9,8 @@
 # 示例:
 #   1.0.0 → 1.0.1
 #   1.2.5 → 1.2.6
+#
+# 注意: 版本号存储在 project.pbxproj 中，Info.plist 通过变量引用
 #
 
 set -e
@@ -20,14 +22,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
 PBXPROJ_PATH="$PROJECT_ROOT/Translayr.xcodeproj/project.pbxproj"
-
-# 检查 Info.plist 是否存在
-if [ ! -f "$PLIST_PATH" ]; then
-    echo -e "${RED}❌ Info.plist not found at $PLIST_PATH${NC}"
-    exit 1
-fi
 
 # 检查 project.pbxproj 是否存在
 if [ ! -f "$PBXPROJ_PATH" ]; then
@@ -35,8 +30,8 @@ if [ ! -f "$PBXPROJ_PATH" ]; then
     exit 1
 fi
 
-# 获取当前 Version
-CURRENT_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH")
+# 从 project.pbxproj 获取当前 Version
+CURRENT_VERSION=$(grep "MARKETING_VERSION = " "$PBXPROJ_PATH" | head -1 | sed 's/.*= \(.*\);/\1/')
 
 # 分割版本号
 IFS='.' read -ra VERSION_PARTS <<< "$CURRENT_VERSION"
@@ -54,9 +49,6 @@ VERSION_PARTS[$LAST_INDEX]=$((${VERSION_PARTS[$LAST_INDEX]} + 1))
 # 重新组合版本号
 NEW_VERSION=$(IFS='.'; echo "${VERSION_PARTS[*]}")
 
-# 更新 Info.plist
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $NEW_VERSION" "$PLIST_PATH"
-
 # 更新 project.pbxproj (同时更新 Debug 和 Release 配置)
 # 需要转义点号，因为 sed 中点号是正则表达式的特殊字符
 CURRENT_VERSION_ESCAPED=$(echo "$CURRENT_VERSION" | sed 's/\./\\./g')
@@ -64,4 +56,3 @@ sed -i '' "s/MARKETING_VERSION = $CURRENT_VERSION_ESCAPED;/MARKETING_VERSION = $
 
 echo -e "${BLUE}ℹ️  Version:${NC} $CURRENT_VERSION → ${GREEN}$NEW_VERSION${NC}"
 echo -e "${GREEN}✅ Version incremented successfully${NC}"
-echo -e "${GREEN}✅ Xcode project configuration updated${NC}"
