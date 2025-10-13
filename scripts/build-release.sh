@@ -6,7 +6,7 @@
 # 使用方法:
 #   ./scripts/build-release.sh
 #
-# 注意: 版本号会自动从 Info.plist 读取
+# 注意: 版本号会自动从 project.pbxproj 读取
 # 如需更新版本，请先运行:
 #   ./scripts/increment-version.sh  # 递增版本号
 #   ./scripts/increment-build.sh    # 递增构建号
@@ -40,19 +40,23 @@ warning() {
 }
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PLIST_PATH="$PROJECT_ROOT/Translayr/Info.plist"
+PBXPROJ_PATH="$PROJECT_ROOT/Translayr.xcodeproj/project.pbxproj"
 
-# 检查 Info.plist 是否存在
-if [ ! -f "$PLIST_PATH" ]; then
-    error "Info.plist not found at $PLIST_PATH"
+# 检查 project.pbxproj 是否存在
+if [ ! -f "$PBXPROJ_PATH" ]; then
+    error "project.pbxproj not found at $PBXPROJ_PATH"
 fi
 
-# 从 Info.plist 读取版本号
-VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST_PATH")
-BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST_PATH")
+# 从 project.pbxproj 读取版本号
+VERSION=$(grep "MARKETING_VERSION = " "$PBXPROJ_PATH" | head -1 | sed 's/.*= \(.*\);/\1/')
+BUILD_NUMBER=$(grep "CURRENT_PROJECT_VERSION = " "$PBXPROJ_PATH" | head -1 | sed 's/.*= \([0-9]*\);/\1/')
 
 if [ -z "$VERSION" ]; then
-    error "CFBundleShortVersionString not found in Info.plist"
+    error "MARKETING_VERSION not found in project.pbxproj"
+fi
+
+if [ -z "$BUILD_NUMBER" ]; then
+    error "CURRENT_PROJECT_VERSION not found in project.pbxproj"
 fi
 
 BUILD_DIR="$PROJECT_ROOT/build"
