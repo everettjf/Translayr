@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import TelemetryDeck
 
 @main
 struct TranslayrApp: App {
@@ -37,6 +38,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
+        
+        // sdk: https://telemetrydeck.com/docs/guides/swift-setup/
+        // dashboard: https://dashboard.telemetrydeck.com/apps/675A16AE-4E72-4AF8-A128-E1E416B5C3A0
+        TelemetryDeck.initialize(config: .init(appID: "675A16AE-4E72-4AF8-A128-E1E416B5C3A0"))
 
         // 注册系统服务
         _ = SystemServiceProvider.shared
