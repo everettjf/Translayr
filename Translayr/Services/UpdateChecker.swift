@@ -35,8 +35,8 @@ class UpdateChecker: ObservableObject {
     // MARK: - Configuration
 
     /// GitHub 仓库信息 - 请修改为你的仓库
-    private let githubOwner = "YOUR_GITHUB_USERNAME"  // TODO: 修改为你的 GitHub 用户名
-    private let githubRepo = "Translayr"              // TODO: 修改为你的仓库名
+    private let githubOwner = "xnuapp"  // 修改为你的 GitHub 用户名
+    private let githubRepo = "TranslayrRelease"              // 修改为你的仓库名
 
     // MARK: - Published Properties
 
