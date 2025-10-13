@@ -222,6 +222,10 @@ codesign --verify --deep --strict "$APP_PATH" && success "App signature is valid
 # DMG 是一个容器格式，真正需要验证的是其中的 .app
 # 已通过公证和装订的 DMG 在用户下载后会被 Gatekeeper 自动验证
 
+
+echo "Open release site"
+open https://github.com/xnuapp/TranslayrRelease/releases
+
 # 完成
 echo ""
 success "🎉 Release build completed successfully!"
