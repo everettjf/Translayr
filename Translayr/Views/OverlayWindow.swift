@@ -306,16 +306,14 @@ class OverlayWindowManager {
         // - Accessibility API: 原点在屏幕左上角，Y 坐标向下增加
         // - macOS Cocoa 窗口: 原点在屏幕左下角，Y 坐标向上增加
         // 因此需要翻转 Y 坐标
-        guard let mainScreen = NSScreen.main else {
-            print("⚠️ Cannot get main screen")
-            return
-        }
 
-        let screenHeight = mainScreen.frame.height
+        // 坐标转换需要使用全局坐标空间的高度（所有屏幕中最高点）
+        // 在多显示器环境下，不能只使用单个屏幕的高度
+        let globalScreenHeight = NSScreen.screens.map { $0.frame.maxY }.max() ?? NSScreen.main?.frame.height ?? 0
 
-        // 坐标转换：从 Accessibility 坐标系转换为 Cocoa 坐标系
-        // 公式：cocoaY = 屏幕高度 - axY - 文本高度
-        let cocoaY = screenHeight - bounds.origin.y - bounds.size.height
+        // 坐标转换：从 Accessibility 坐标系（左上角原点）转换为 Cocoa 坐标系（左下角原点）
+        // 公式：cocoaY = 全局屏幕高度 - axY - 文本高度
+        let cocoaY = globalScreenHeight - bounds.origin.y - bounds.size.height
 
         let screenBounds = NSRect(
             x: bounds.origin.x,
@@ -326,7 +324,7 @@ class OverlayWindowManager {
 
         print("🎯 [OverlayWindowManager] Positioning overlay:")
         print("   AX bounds: \(bounds)")
-        print("   Screen height: \(screenHeight)")
+        print("   Global screen height: \(globalScreenHeight)")
         print("   Cocoa bounds: \(screenBounds)")
 
         // 定义悬停回调函数（弱引用 self 防止循环引用）
@@ -455,27 +453,34 @@ class OverlayWindowManager {
         let popupWidth: CGFloat = 400
         let popupHeight: CGFloat = 100  // 固定高度，足够容纳头部 + 2行文字
 
+        // 找到包含文本的显示屏（而不是总是使用主屏幕）
+        let textCenter = NSPoint(x: textBounds.midX, y: textBounds.midY)
+        let screen = NSScreen.screens.first { screen in
+            screen.frame.contains(textCenter)
+        } ?? NSScreen.main ?? NSScreen.screens.first
+
+        guard let currentScreen = screen else {
+            print("⚠️ [OverlayWindowManager] No screen found for popup")
+            return
+        }
+
         // 计算弹窗位置（默认在文字上方，间距 8 像素）
         var popupX = textBounds.origin.x
         var popupY = textBounds.origin.y + textBounds.size.height + 8
 
         // 如果弹窗会超出屏幕顶部，则显示在文字下方
-        if let screen = NSScreen.main {
-            if popupY + popupHeight > screen.frame.maxY - 20 {
-                popupY = textBounds.origin.y - popupHeight - 8
-            }
+        if popupY + popupHeight > currentScreen.frame.maxY - 20 {
+            popupY = textBounds.origin.y - popupHeight - 8
         }
 
         // 防止弹窗超出屏幕右边缘
-        if let screen = NSScreen.main {
-            if popupX + popupWidth > screen.frame.maxX {
-                popupX = screen.frame.maxX - popupWidth - 10
-            }
+        if popupX + popupWidth > currentScreen.frame.maxX {
+            popupX = currentScreen.frame.maxX - popupWidth - 10
         }
 
         // 防止弹窗超出屏幕左边缘
-        if popupX < 10 {
-            popupX = 10
+        if popupX < currentScreen.frame.minX + 10 {
+            popupX = currentScreen.frame.minX + 10
         }
 
         let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
