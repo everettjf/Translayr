@@ -468,20 +468,39 @@ class OverlayWindowManager {
         var popupX = textBounds.origin.x
         var popupY = textBounds.origin.y + textBounds.size.height + 8
 
+        print("🪟 [OverlayWindowManager] Initial popup position: x=\(popupX), y=\(popupY)")
+        print("🪟 [OverlayWindowManager] Current screen frame: \(currentScreen.frame)")
+        print("🪟 [OverlayWindowManager] Text bounds: \(textBounds)")
+
         // 如果弹窗会超出屏幕顶部，则显示在文字下方
         if popupY + popupHeight > currentScreen.frame.maxY - 20 {
             popupY = textBounds.origin.y - popupHeight - 8
+            print("🪟 [OverlayWindowManager] Adjusted popup to below text: y=\(popupY)")
+        }
+
+        // 如果弹窗会超出屏幕底部，则调整到屏幕底部边缘
+        if popupY < currentScreen.frame.minY + 20 {
+            popupY = currentScreen.frame.minY + 20
+            print("🪟 [OverlayWindowManager] Adjusted popup to avoid bottom edge: y=\(popupY)")
         }
 
         // 防止弹窗超出屏幕右边缘
-        if popupX + popupWidth > currentScreen.frame.maxX {
+        if popupX + popupWidth > currentScreen.frame.maxX - 10 {
             popupX = currentScreen.frame.maxX - popupWidth - 10
+            print("🪟 [OverlayWindowManager] Adjusted popup to avoid right edge: x=\(popupX)")
         }
 
         // 防止弹窗超出屏幕左边缘
         if popupX < currentScreen.frame.minX + 10 {
             popupX = currentScreen.frame.minX + 10
+            print("🪟 [OverlayWindowManager] Adjusted popup to avoid left edge: x=\(popupX)")
         }
+
+        // 最终边界检查：确保弹窗完全在当前屏幕范围内
+        popupX = max(currentScreen.frame.minX + 10, min(popupX, currentScreen.frame.maxX - popupWidth - 10))
+        popupY = max(currentScreen.frame.minY + 20, min(popupY, currentScreen.frame.maxY - popupHeight - 20))
+
+        print("🪟 [OverlayWindowManager] Final popup position: x=\(popupX), y=\(popupY)")
 
         let popupFrame = NSRect(x: popupX, y: popupY, width: popupWidth, height: popupHeight)
 
