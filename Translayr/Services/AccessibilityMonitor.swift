@@ -154,6 +154,12 @@ class AccessibilityMonitor: ObservableObject {
     }
 
     private func checkFocusedElement() {
+        // 检查是否正在监控
+        guard isMonitoring else {
+            print("⏹ [AccessibilityMonitor] Not monitoring, skipping check")
+            return
+        }
+
         // Get the currently active application
         guard let activeApp = NSWorkspace.shared.frontmostApplication else {
             print("⚠️ [AccessibilityMonitor] No frontmost app")

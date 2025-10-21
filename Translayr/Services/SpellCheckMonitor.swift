@@ -18,6 +18,9 @@ import Combine
 class SpellCheckMonitor: ObservableObject {
     static let shared = SpellCheckMonitor()
 
+    /// 监控启用状态（从 UserDefaults 读取）
+    @AppStorage("isTranslayrEnabled") private var isTranslayrEnabled = true
+
     /// 检测到的文本项列表
     @Published var detectedItems: [DetectedTextItem] = []
 
@@ -154,6 +157,16 @@ class SpellCheckMonitor: ObservableObject {
     /// 2. 然后检测独立的语言词组（根据语言配置的最小长度）
     /// - Parameter text: 要检测的文本
     private func detectText(_ text: String) {
+        // 检查是否已启用 Translayr
+        guard isTranslayrEnabled else {
+            if !detectedItems.isEmpty {
+                print("⏹ [SpellCheckMonitor] Translayr disabled, clearing items")
+                detectedItems = []
+                overlayManager.hideAll()
+            }
+            return
+        }
+
         guard !text.isEmpty else {
             if !detectedItems.isEmpty {
                 print("🔍 [SpellCheckMonitor] Text empty, clearing items")
