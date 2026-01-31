@@ -343,26 +343,6 @@ See [BUILD_RELEASE.md](BUILD_RELEASE.md) for details.
 - [x] Auto update check (GitHub Releases)
 - [x] Release build pipeline (signing + notarization)
 
-### Planned 🎯
-- [ ] Global hotkey support
-- [ ] Translation history
-- [ ] Batch translation
-- [ ] Document translation (PDF, Word)
-- [ ] Offline dictionary integration
-- [ ] Custom translation prompt templates
-- [ ] Multi-model comparison
-- [ ] Import/export dictionary
-- [ ] Dark mode refinements
-- [ ] More language support
-- [ ] System notifications
-
-### Future 🌟
-- [ ] Safari extension
-- [ ] Chrome extension
-- [ ] iOS/iPadOS version
-- [ ] iCloud settings sync
-- [ ] Team collaboration
-
 ## 🤝 Contributing & Community
 
 Contributions are welcome via issues and pull requests:
