@@ -1,457 +1,410 @@
-# Translayr - 系统级智能翻译助手
+<h1 align="center">Translayr</h1>
+<p align="center">System-wide AI translation for macOS</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-13.0+-blue.svg" />
   <img src="https://img.shields.io/badge/Swift-5.9+-orange.svg" />
   <img src="https://img.shields.io/badge/Xcode-15.0+-blue.svg" />
   <img src="https://img.shields.io/badge/Ollama-Local%20AI-green.svg" />
+  <a href="https://discord.com/invite/eGzEaP6TzR"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" /></a>
 </p>
 
-Translayr 是一款专为 macOS 设计的**系统级智能翻译助手**。它能实时监控任何应用中的文本输入，自动检测多种语言并提供即时翻译。通过结合 macOS Accessibility API 和本地 AI 模型（Ollama），Translayr 为用户提供了一个强大、私密且流畅的跨应用翻译体验。
+<p align="center">
+  <a href="https://www.translayr.com">🌐 Website</a>
+</p>
 
-## ✨ 核心特性
+Translayr is a **system-wide intelligent translation assistant** for macOS. It monitors text input in any application, detects language automatically, and provides instant translations. By combining the macOS Accessibility API with local AI models (Ollama), Translayr delivers powerful, private, and seamless cross-app translation.
 
-### 🌐 系统级监控
-- **跨应用监控**: 在任何 macOS 应用中自动检测和翻译文本（Notes、TextEdit、Safari、Chrome 等）
-- **实时文本检测**: 自动识别文本输入框中的内容，无需手动触发
-- **智能文本分析**: 自动分词并识别句子和词组
-- **应用白名单**: 可配置跳过列表，排除不需要监控的应用
+## Table of Contents
 
-### 🤖 智能翻译
-- **多语言支持**: 支持世界上使用人数最多的 10 种语言
-  - 中文、英语、西班牙语、印地语、阿拉伯语、法语、孟加拉语、俄语、葡萄牙语、印尼语
-- **本地 AI 模型**: 使用 Ollama 提供高质量翻译，无需联网
-- **双向翻译**: 可自定义源语言和目标语言
-- **上下文感知**: 根据完整句子或词组提供准确翻译
+- [Key Features](#-key-features)
+- [Download](#-download)
+- [Quick Start](#-quick-start)
+- [Usage Guide](#-usage-guide)
+- [How It Works](#-how-it-works)
+- [Project Structure](#-project-structure)
+- [Development & Release](#-development--release)
+- [Troubleshooting](#-troubleshooting)
+- [Roadmap](#-roadmap)
+- [Contributing & Community](#-contributing--community)
+- [License](#-license)
+- [Star History](#-star-history)
 
-### 🎨 优雅的用户界面
-- **浮动下划线**: 在检测到的文本下方显示彩色下划线提示
-- **鼠标悬停效果**: 悬停时高亮显示，提供视觉反馈
-- **弹窗式翻译**: 点击下划线即显示翻译结果弹窗
-- **一键替换**: 点击翻译结果直接在原应用中替换文本
-- **自适应位置**: 翻译弹窗智能定位，避免遮挡文本
-- **智能隐藏**: 窗口拖动、滚动或切换屏幕时自动隐藏下划线，体验流畅
+## ✨ Key Features
 
-### 🔒 隐私保护
-- **完全本地处理**: 所有翻译在本地完成，数据不离开你的设备
-- **无网络依赖**: 不需要云服务或互联网连接
-- **权限可控**: 用户完全掌控辅助功能权限
+### 🌐 System-Wide Monitoring
+- **Cross-app monitoring**: Detect and translate text in any macOS app (Notes, TextEdit, Safari, Chrome, etc.)
+- **Real-time detection**: Automatic input field detection without manual triggers
+- **Intelligent text analysis**: Tokenizes and recognizes phrases/sentences
+- **App allow/skip list**: Exclude apps that should not be monitored
 
-### ⚙️ 丰富的配置选项
-- **语言选择**: 自定义检测语言和目标翻译语言
-- **颜色自定义**: 可配置下划线颜色
-- **应用过滤**: 设置跳过监控的应用列表
-- **模型选择**: 支持多种 Ollama 模型
-- **菜单栏集成**: 便捷的菜单栏快速访问
-- **自动更新**: 基于 GitHub Releases 的版本检查和更新提醒
+### 🤖 Smart Translation
+- **Multilingual support**: Top 10 most-used languages worldwide
+  - Chinese, English, Spanish, Hindi, Arabic, French, Bengali, Russian, Portuguese, Indonesian
+- **Local AI models**: High-quality translation with Ollama, no internet required
+- **Bidirectional translation**: Customizable source and target languages
+- **Context-aware**: Uses full sentences for more accurate translation
 
-## 📸 使用场景
+### 🎨 Polished UI
+- **Floating underline**: Colored underline for detected text
+- **Hover highlight**: Visual feedback on hover
+- **Popup translation**: Click underline to show translation popup
+- **One-click replace**: Insert translation directly in the original app
+- **Smart positioning**: Popup avoids covering text
+- **Auto-hide**: Hides underline during scrolling, window movement, or space switching
 
-- **写作辅助**: 在任何文本编辑器中实时翻译外语词汇
-- **学习工具**: 浏览网页时即时翻译不认识的词汇
-- **邮件撰写**: 在邮件客户端中快速翻译句子
-- **代码注释**: 帮助编写多语言代码注释
-- **社交媒体**: 在聊天应用中翻译消息
+### 🔒 Privacy First
+- **Fully local processing**: Data never leaves your device
+- **Offline by design**: No cloud services required
+- **Permission-controlled**: Users control Accessibility permissions
 
-## 🚀 快速开始
+### ⚙️ Configurable
+- **Language selection**: Customize detection and target languages
+- **Color themes**: Underline color options
+- **App filtering**: Skip list for apps
+- **Model selection**: Choose Ollama models
+- **Menu bar integration**: Quick access from menu bar
+- **Auto-update checks**: GitHub Releases-based update notifications
 
-### 系统要求
-- macOS 13.0 或更高版本
-- Xcode 15.0 或更高版本（用于构建）
-- [Ollama](https://ollama.ai) 已安装并运行
+## 📥 Download
 
-### 1. 安装 Ollama
+**Requirements:** macOS 15.0+ • [Ollama](https://ollama.ai)
+
+1. Download the latest `.dmg`
+2. Open it and drag Translayr to Applications
+3. Launch and grant Accessibility permission
+
+## 🚀 Quick Start
+
+### 1. Install Ollama & Model
 
 ```bash
-# 使用 Homebrew 安装
 brew install ollama
-
-# 下载推荐的翻译模型（选择其一）
-ollama pull qwen2.5:3b      # 推荐：轻量级，适合快速翻译
-ollama pull llama3.2:3b     # 备选：平衡性能和准确度
-ollama pull gemma2:2b       # 备选：超轻量级
-
-# 启动 Ollama 服务
+ollama pull qwen2.5:3b
 ollama serve
 ```
 
-### 2. 构建并运行 Translayr
+### 2. Install Translayr
 
-```bash
-# 克隆项目
-git clone <your-repo-url>
-cd Translayr
+1. Download and open the `.dmg` file
+2. Drag Translayr to Applications
+3. Launch and grant Accessibility permission
 
-# 在 Xcode 中打开项目
-open Translayr.xcodeproj
+### 3. Start Using
 
-# 在 Xcode 中按 ⌘ + R 运行
-```
+Type in any app → Click underlined text → Translate instantly
 
-### 3. 授予辅助功能权限
+---
 
-首次运行时，Translayr 会请求辅助功能权限：
+## 📖 Usage Guide
 
-1. 系统会自动弹出权限请求对话框
-2. 点击 "Open System Settings"
-3. 在 **系统设置 → 隐私与安全性 → 辅助功能** 中启用 Translayr
-4. 重启 Translayr 以激活监控功能
+### Supported Languages
 
-### 4. 开始使用
-
-1. **确保 Ollama 服务运行中**
-   ```bash
-   ollama serve
-   ```
-
-2. **在设置中配置语言**
-   - 点击菜单栏中的 Translayr 图标
-   - 选择 "Settings"
-   - 在 "Language" 标签中选择源语言和目标语言
-
-3. **在任何应用中输入文本**
-   - 在支持的应用中输入或粘贴文本
-   - Translayr 会自动检测目标语言并显示下划线
-   - 点击下划线查看翻译
-   - 点击翻译结果即可替换原文
-
-## 📖 详细使用指南
-
-### 支持的语言
-
-| 语言 | 代码 | 最小检测长度 | Unicode 模式 |
+| Language | Code | Minimum Length | Unicode Pattern |
 |------|------|------------|-------------|
-| 中文 | zh | 2 字 | CJK 统一汉字 |
-| 英语 | en | 4 字母 | 拉丁字母 |
-| 西班牙语 | es | 3 字母 | 拉丁字母 + 特殊字符 |
-| 印地语 | hi | 2 字符 | 天城文 |
-| 阿拉伯语 | ar | 3 字符 | 阿拉伯字母 |
-| 法语 | fr | 3 字母 | 拉丁字母 + 法语特殊字符 |
-| 孟加拉语 | bn | 2 字符 | 孟加拉文 |
-| 俄语 | ru | 3 字母 | 西里尔字母 |
-| 葡萄牙语 | pt | 3 字母 | 拉丁字母 + 葡语特殊字符 |
-| 印尼语 | id | 4 字母 | 拉丁字母 |
+| Chinese | zh | 2 chars | CJK Unified Ideographs |
+| English | en | 4 letters | Latin |
+| Spanish | es | 3 letters | Latin + accents |
+| Hindi | hi | 2 chars | Devanagari |
+| Arabic | ar | 3 chars | Arabic |
+| French | fr | 3 letters | Latin + accents |
+| Bengali | bn | 2 chars | Bengali |
+| Russian | ru | 3 letters | Cyrillic |
+| Portuguese | pt | 3 letters | Latin + accents |
+| Indonesian | id | 4 letters | Latin |
 
-### 工作原理
+### Advanced Settings
 
-```
-用户在任何应用中输入文本
-          ↓
-AccessibilityMonitor 监控文本变化
-          ↓
-SpellCheckMonitor 检测目标语言
-          ↓
-OverlayWindow 显示下划线标记
-          ↓
-用户点击下划线
-          ↓
-LocalModelClient 调用 Ollama 翻译
-          ↓
-显示翻译弹窗
-          ↓
-用户选择翻译结果
-          ↓
-在原应用中替换文本
-```
+#### Skip App List
 
-### 高级配置
-
-#### 自定义跳过应用列表
-
-在 "Skip Apps" 设置中，可以配置不需要监控的应用：
+In the "Skip Apps" setting, add apps you don’t want to monitor:
 
 ```
 Xcode, Terminal, iTerm, 1Password
 ```
 
-用逗号分隔应用名称（不区分大小写）。
+Comma-separated, case-insensitive.
 
-#### 自定义下划线颜色
+#### Underline Colors
 
-在 "Colors" 设置中选择喜欢的下划线颜色：
-- 红色（默认）
-- 蓝色
-- 绿色
-- 紫色
-- 橙色
+Select preferred underline color in "Colors":
+- Red (default)
+- Blue
+- Green
+- Purple
+- Orange
 
-#### 选择 AI 模型
+#### Model Selection
 
-在 "Models" 设置中选择 Ollama 模型：
-- 输入模型名称（如 `qwen2.5:3b`）
-- 点击 "Save" 保存设置
+Enter a model name in "Models" and save:
 
-## 🏗️ 项目架构
+```
+qwen2.5:3b
+```
+
+## 🔍 How It Works
+
+```
+User types in any app
+          ↓
+AccessibilityMonitor observes text changes
+          ↓
+SpellCheckMonitor detects target language
+          ↓
+OverlayWindow draws underline
+          ↓
+User clicks underline
+          ↓
+LocalModelClient calls Ollama
+          ↓
+Translation popup appears
+          ↓
+User selects translation
+          ↓
+Text replaced in original app
+```
+
+## 🏗️ Project Structure
 
 ```
 Translayr/
 ├── Translayr/
-│   ├── TranslayrApp.swift              # 应用入口，菜单栏集成
-│   ├── ContentView.swift            # 主界面
+│   ├── TranslayrApp.swift              # App entry, menu bar integration
+│   ├── ContentView.swift               # Main view
 │   │
 │   ├── Models/
-│   │   └── Suggestion.swift         # 建议数据模型
+│   │   └── Suggestion.swift            # Suggestion model
 │   │
 │   ├── Protocols/
-│   │   └── SpellAnalyzing.swift     # 拼写分析协议
+│   │   └── SpellAnalyzing.swift        # Spell analysis protocol
 │   │
 │   ├── Services/
-│   │   ├── AccessibilityMonitor.swift    # 辅助功能监控器（文本获取、滚动检测）
-│   │   ├── SpellCheckMonitor.swift       # 拼写检查监控器（核心协调）
-│   │   ├── SpellService.swift            # 拼写服务（翻译逻辑）
-│   │   ├── LocalModelClient.swift        # Ollama 客户端
-│   │   ├── SystemServiceProvider.swift   # 系统服务提供者
-│   │   ├── LanguageConfig.swift          # 语言配置管理
-│   │   └── UpdateChecker.swift           # 版本更新检查服务
+│   │   ├── AccessibilityMonitor.swift  # Accessibility monitor
+│   │   ├── SpellCheckMonitor.swift     # Spell check coordinator
+│   │   ├── SpellService.swift          # Spell/translation logic
+│   │   ├── LocalModelClient.swift      # Ollama client
+│   │   ├── SystemServiceProvider.swift # System service provider
+│   │   ├── LanguageConfig.swift        # Language configuration
+│   │   └── UpdateChecker.swift         # Release update checker
 │   │
 │   ├── Views/
-│   │   ├── OverlayWindow.swift          # 浮动下划线窗口
-│   │   ├── MenuBarView.swift            # 菜单栏视图
-│   │   │
+│   │   ├── OverlayWindow.swift         # Floating underline window
+│   │   ├── MenuBarView.swift           # Menu bar view
 │   │   └── SettingsView/
-│   │       ├── SettingsView.swift           # 设置主视图
-│   │       ├── GeneralSettingsView.swift    # 通用设置
-│   │       ├── LanguageSettingsView.swift   # 语言设置
-│   │       ├── ColorSettingsView.swift      # 颜色设置
-│   │       ├── SkipAppsSettingsView.swift   # 跳过应用设置
-│   │       ├── ModelsSettingsView.swift     # 模型设置
-│   │       ├── PreferencesSection.swift     # 偏好设置组件
-│   │       └── AboutView.swift              # 关于页面
+│   │       ├── SettingsView.swift
+│   │       ├── GeneralSettingsView.swift
+│   │       ├── LanguageSettingsView.swift
+│   │       ├── ColorSettingsView.swift
+│   │       ├── SkipAppsSettingsView.swift
+│   │       ├── ModelsSettingsView.swift
+│   │       ├── PreferencesSection.swift
+│   │       └── AboutView.swift
 │   │
-│   └── Info.plist                   # 应用配置
+│   └── Info.plist                       # App configuration
 │
-├── TranslayrTests/                     # 单元测试
+├── TranslayrTests/                      # Unit tests
 ├── scripts/
-│   ├── build-release.sh             # 完整发布构建脚本（签名、公证、打包）
-│   ├── increment-build.sh           # 递增构建号脚本
-│   ├── increment-version.sh         # 递增版本号脚本
-│   └── sign-and-notarize.sh         # 独立签名和公证脚本
-├── README.md                        # 项目说明（本文件）
-├── DOCUMENT.md                      # 详细文档
-├── USAGE.md                         # 使用指南
-├── SYSTEM_SERVICE.md                # 系统服务集成说明
-├── BUILD_RELEASE.md                 # 发布构建详细说明
-├── QUICK_START.md                   # 5分钟快速开始指南
-└── AGENTS.md                        # AI Agent 相关文档
+│   ├── build-release.sh                 # Release build script
+│   ├── increment-build.sh               # Build number bump
+│   ├── increment-version.sh             # Version bump
+│   │
+│   └── sign-and-notarize.sh             # Signing + notarization
+├── README.md                            # Project overview
+├── DOCUMENT.md                          # Technical documentation
+├── USAGE.md                             # Usage manual
+├── SYSTEM_SERVICE.md                    # System service integration
+├── BUILD_RELEASE.md                     # Release build details
+├── QUICK_START.md                       # 5-minute quick start
+└── AGENTS.md                            # Agent guide
 ```
 
-## 🔨 开发者指南
+## 🔨 Development & Release
 
-### 构建发布版本
-
-项目提供了完整的自动化构建脚本，支持代码签名和 Apple 公证：
+### Local Development
 
 ```bash
-# 1. 递增版本号（可选）
-./scripts/increment-version.sh  # 1.0.0 → 1.0.1
-./scripts/increment-build.sh    # Build: 1 → 2
-
-# 2. 构建发布版本（自动从 Info.plist 读取版本）
-./scripts/build-release.sh
-
-# 输出: build/Translayr-{version}.dmg
-```
-
-**构建流程包括：**
-1. 清理构建目录
-2. Archive 项目
-3. 导出 .app
-4. 代码签名（Developer ID）
-5. 创建 DMG
-6. Apple 公证（Notarization）
-7. 装订公证票据（Stapling）
-
-详细说明请参考 [BUILD_RELEASE.md](BUILD_RELEASE.md)。
-
-### 快速开发迭代
-
-```bash
-# 在 Xcode 中直接运行
+# Run with Xcode
 open Translayr.xcodeproj
-# 按 ⌘ + R 运行
+# Press ⌘ + R
 
-# 或使用命令行
+# Or build from CLI
 xcodebuild -scheme Translayr -configuration Debug
 ```
 
-## ⚙️ 配置说明
+### Release Build
 
-### Ollama 配置
+Automated scripts support signing and Apple notarization:
 
-配置信息存储在 `UserDefaults` 中：
+```bash
+# 1. Bump version (optional)
+./scripts/increment-version.sh  # 1.0.0 → 1.0.1
+./scripts/increment-build.sh    # Build: 1 → 2
 
-```swift
-// 保存模型名称
-UserDefaults.standard.set("qwen2.5:3b", forKey: "ollamaModel")
+# 2. Build release (reads version from Info.plist)
+./scripts/build-release.sh
 
-// Ollama 服务器默认地址
-// http://127.0.0.1:11434
+# Output: build/Translayr-{version}.dmg
 ```
 
-### 推荐模型对比
+**Release pipeline includes:**
+1. Clean build directory
+2. Archive project
+3. Export .app
+4. Code signing (Developer ID)
+5. Create DMG
+6. Apple notarization
+7. Staple notarization ticket
 
-| 模型 | 大小 | 速度 | 质量 | 内存占用 | 适用场景 |
-|------|------|------|------|---------|----------|
-| qwen2.5:3b | ~2GB | ⚡⚡⚡ | ⭐⭐⭐⭐ | ~4GB | 日常翻译，推荐 ✅ |
-| llama3.2:3b | ~2GB | ⚡⚡ | ⭐⭐⭐⭐⭐ | ~4GB | 高质量翻译 |
-| gemma2:2b | ~1.5GB | ⚡⚡⚡⚡ | ⭐⭐⭐ | ~3GB | 快速翻译、低内存设备 |
-| phi3:3.8b | ~2.3GB | ⚡⚡ | ⭐⭐⭐⭐ | ~4.5GB | 平衡性能 |
+See [BUILD_RELEASE.md](BUILD_RELEASE.md) for details.
 
-## 🔧 故障排除
+### Build Requirements
 
-### 问题 1: 无法监控其他应用的文本
+- macOS 13.0+
+- Xcode 15.0+
+- Ollama installed locally
 
-**症状**: Translayr 运行中但没有检测到其他应用的文本
+## 🔧 Troubleshooting
 
-**解决方案**:
-1. 确认已授予辅助功能权限
-   - 系统设置 → 隐私与安全性 → 辅助功能 → 启用 Translayr
-2. 尝试重启目标应用
-3. 尝试重启 Translayr
-4. 检查目标应用是否在跳过列表中
+### Issue 1: No text detected in other apps
 
-### 问题 2: Ollama 连接失败
+**Symptoms**: Translayr is running but no text is detected
 
-**症状**: 点击下划线后没有翻译结果
+**Fix**:
+1. Confirm Accessibility permission
+   - System Settings → Privacy & Security → Accessibility → Enable Translayr
+2. Restart the target app
+3. Restart Translayr
+4. Ensure the app isn’t in the skip list
 
-**解决方案**:
-1. 确认 Ollama 服务正在运行
+### Issue 2: Ollama connection failed
+
+**Symptoms**: Clicking underline shows no translation
+
+**Fix**:
+1. Ensure Ollama is running
    ```bash
    curl http://127.0.0.1:11434/api/tags
    ```
-   如果返回错误，启动 Ollama：
+   If it fails, start Ollama:
    ```bash
    ollama serve
    ```
-2. 确认模型已下载
+2. Ensure model is downloaded
    ```bash
    ollama list
    ```
-   如果没有，下载模型：
+   If missing, download:
    ```bash
    ollama pull qwen2.5:3b
    ```
-3. 检查模型名称是否正确配置
+3. Verify model name in Settings
 
-### 问题 3: 下划线位置不准确
+### Issue 3: Underline misaligned
 
-**症状**: 下划线没有对齐到文本下方
+**Symptoms**: Underline is not aligned with text
 
-**解决方案**:
-- Translayr 会自动跟踪窗口移动和调整大小
-- 如果位置仍不准确，尝试在该应用中重新输入文本
-- 某些应用可能不支持精确的文本位置 API
+**Fix**:
+- Translayr tracks window movement/resize automatically
+- Re-type text in the app if it still misaligns
+- Some apps do not expose precise text positioning
 
-### 问题 4: 翻译速度慢
+### Issue 4: Translation is slow
 
-**症状**: 点击下划线后需要等待很久才显示翻译
+**Symptoms**: Long wait after clicking underline
 
-**解决方案**:
-1. 首次使用会加载模型（10-30秒），之后会快很多
-2. 尝试使用更轻量的模型（如 `gemma2:2b`）
-3. 确保 Mac 有足够的内存（推荐 8GB+）
-4. 关闭其他占用内存的应用
+**Fix**:
+1. First use loads the model (10–30 seconds); subsequent uses are faster
+2. Try a lighter model (e.g., `gemma2:2b`)
+3. Ensure sufficient memory (8GB+ recommended)
+4. Close memory-heavy apps
 
-### 问题 5: 某些应用无法工作
+### Issue 5: Some apps don’t work
 
-**已知限制**:
-- 某些应用可能不支持辅助功能 API（如某些 Electron 应用）
-- 密码输入框出于安全原因无法访问
-- 某些原生输入法输入框可能不支持
+**Known limitations**:
+- Some apps (e.g., certain Electron apps) may not support Accessibility APIs
+- Password fields are not accessible for security reasons
+- Some IME input fields may not expose position APIs
 
-## 📋 技术栈
+## 🛣️ Roadmap
 
-- **语言**: Swift 5.9+
-- **UI 框架**: SwiftUI + AppKit
-- **AI 集成**: [Ollama](https://ollama.ai)
-- **辅助功能**: macOS Accessibility API (AX API)
-- **系统集成**: NSService, MenuBarExtra
-- **架构模式**: MVVM + Combine
+### Completed ✅
+- [x] System-wide text monitoring
+- [x] Multi-language detection (10 languages)
+- [x] Real-time translation
+- [x] Floating underline hints
+- [x] One-click replacement
+- [x] Menu bar integration
+- [x] Configurable settings
+- [x] Skip app list
+- [x] Custom underline colors
+- [x] Auto-hide on window movement
+- [x] Auto-hide on scrolling
+- [x] Multi-screen/space switching detection
+- [x] Auto update check (GitHub Releases)
+- [x] Release build pipeline (signing + notarization)
 
-## 🛣️ 开发路线图
+### Planned 🎯
+- [ ] Global hotkey support
+- [ ] Translation history
+- [ ] Batch translation
+- [ ] Document translation (PDF, Word)
+- [ ] Offline dictionary integration
+- [ ] Custom translation prompt templates
+- [ ] Multi-model comparison
+- [ ] Import/export dictionary
+- [ ] Dark mode refinements
+- [ ] More language support
+- [ ] System notifications
 
-### 已完成 ✅
-- [x] 系统级文本监控
-- [x] 多语言检测（10 种语言）
-- [x] 实时翻译
-- [x] 浮动下划线提示
-- [x] 一键文本替换
-- [x] 菜单栏集成
-- [x] 多种配置选项
-- [x] 应用跳过列表
-- [x] 自定义颜色
-- [x] 窗口拖动时智能隐藏下划线
-- [x] 滚动时自动隐藏下划线
-- [x] 多屏幕/空间切换检测
-- [x] 自动更新检查（GitHub Releases）
-- [x] 完整的发布构建流程（签名、公证）
+### Future 🌟
+- [ ] Safari extension
+- [ ] Chrome extension
+- [ ] iOS/iPadOS version
+- [ ] iCloud settings sync
+- [ ] Team collaboration
 
-### 计划中 🎯
-- [ ] 快捷键支持（全局热键）
-- [ ] 翻译历史记录
-- [ ] 批量翻译
-- [ ] 文档翻译（PDF, Word）
-- [ ] 离线词典集成
-- [ ] 自定义翻译提示词模板
-- [ ] 多模型对比翻译
-- [ ] 导出/导入词典
-- [ ] 深色模式优化
-- [ ] 更多语言支持
-- [ ] 系统通知集成
+## 🤝 Contributing & Community
 
-### 未来展望 🌟
-- [ ] Safari 浏览器扩展
-- [ ] Chrome 浏览器扩展
-- [ ] iOS/iPadOS 版本
-- [ ] iCloud 同步设置
-- [ ] 团队协作功能
+Contributions are welcome via issues and pull requests:
 
-## 🤝 贡献指南
+- [Issues](../../issues)
+- [Discussions](../../discussions)
+- [Discord](https://discord.com/invite/eGzEaP6TzR)
 
-欢迎贡献代码、报告问题或提出建议！
+### Contribution Workflow
 
-### 如何贡献
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+### Coding Standards
 
-### 代码规范
+- Follow Swift official style guidelines
+- Add unit tests for new features
+- Keep comments clear (bilingual preferred)
+- Ensure tests pass before PR submission
 
-- 遵循 Swift 官方编码规范
-- 为新功能添加单元测试
-- 保持代码注释清晰（中英双语更佳）
-- 确保所有测试通过后再提交 PR
+### Reporting Issues
 
-### 报告问题
+Please include:
+- macOS version
+- Translayr version
+- Ollama version and model
+- Detailed issue description and reproduction steps
+- Relevant logs (if available)
 
-在创建 Issue 时，请提供：
-- macOS 版本
-- Translayr 版本
-- Ollama 版本和模型
-- 详细的问题描述和复现步骤
-- 相关的日志输出（如有）
+## 📄 License
 
-## 🙏 致谢
+Released under the [MIT License](LICENSE).
 
-- [Ollama](https://ollama.ai) - 优秀的本地 AI 模型运行时
-- [ollama-swift](https://github.com/mattt/ollama-swift) - Swift 版 Ollama 客户端（如使用）
-- Apple NSSpellChecker - macOS 原生拼写检查 API
-- macOS Accessibility API - 强大的系统辅助功能
+## ⭐ Star History
 
-## 📄 许可证
-
-本项目采用 [MIT 许可证](LICENSE)。
-
-## 📧 联系方式
-
-- 创建 [Issue](../../issues) 报告问题或提出建议
-- 查看 [Discussions](../../discussions) 参与讨论
+[![Star History Chart](https://api.star-history.com/svg?repos=everettjf/Translayr&type=Date)](https://star-history.com/#everettjf/Translayr&Date)
 
 ---
 
 **Made with ❤️ for macOS**
 
-如果觉得 Translayr 有用，请给个 ⭐️ Star！
+If Translayr is helpful, please consider giving it a ⭐️!

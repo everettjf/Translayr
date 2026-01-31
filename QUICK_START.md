@@ -1,170 +1,171 @@
 # Translayr Release - Quick Start Guide
 
-快速上手指南 - 5 分钟配置，一键发布
+<p align="center">
+  <a href="https://discord.com/invite/eGzEaP6TzR"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" /></a>
+</p>
 
-## 📦 已创建的文件
+5-minute setup, one-command release.
+
+## 📦 Files Created
 
 ```
 Translayr/
 ├── scripts/
-│   ├── build-release.sh         # 🚀 一键构建发布版本
-│   └── sign-and-notarize.sh     # ✍️  单独签名和公证工具
-├── .env.template                 # 🔑 配置模板
-├── ExportOptions.plist           # ⚙️  Xcode 导出配置
-├── BUILD_RELEASE.md              # 📖 完整发布指南
-└── QUICK_START.md                # ⚡ 快速开始（本文件）
+│   ├── build-release.sh         # 🚀 One-command release build
+│   └── sign-and-notarize.sh     # ✍️  Standalone sign + notarize
+├── .env.template                 # 🔑 Config template
+├── ExportOptions.plist           # ⚙️  Xcode export config
+├── BUILD_RELEASE.md              # 📖 Full release guide
+└── QUICK_START.md                # ⚡ Quick start (this file)
 ```
 
-## ⚡ 快速开始 (3 步)
+## ⚡ Quick Start (3 Steps)
 
-### 1️⃣ 配置凭证 (仅首次)
+### 1️⃣ Configure Credentials (First Time Only)
 
 ```bash
-# 复制配置模板
+# Copy template
 cp .env.template .env
 
-# 编辑配置文件
-nano .env  # 填入你的 Apple Developer 凭证
+# Edit config
+nano .env  # fill in your Apple Developer credentials
 ```
 
-**需要的信息：**
-- **Developer ID 证书名称** - 从 Keychain Access 复制
-- **Apple ID 邮箱**
-- **Team ID** (10字符) - 从 developer.apple.com 获取
-- **App-specific password** - 从 appleid.apple.com 生成
+**Required information:**
+- **Developer ID certificate name** - from Keychain Access
+- **Apple ID email**
+- **Team ID** (10 chars) - from developer.apple.com
+- **App-specific password** - generated at appleid.apple.com
 
-> 💡 详细获取方法见 `.env.template` 文件中的注释
+> Tip: See `.env.template` comments for details.
 
-### 2️⃣ 更新 GitHub 仓库信息
+### 2️⃣ Update GitHub Repo Info
 
-编辑 `Translayr/Services/UpdateChecker.swift:14-15`：
+Edit `Translayr/Services/UpdateChecker.swift`:
 
 ```swift
-private let githubOwner = "your-github-username"  // 改为你的 GitHub 用户名
-private let githubRepo = "Translayr"              // 你的仓库名
+private let githubOwner = "your-github-username"
+private let githubRepo = "Translayr"
 ```
 
-### 3️⃣ 一键构建
+### 3️⃣ One-Command Build
 
 ```bash
-# 构建 1.0.0 版本
+# Build version 1.0.0
 ./scripts/build-release.sh 1.0.0
 ```
 
-**脚本会自动完成：**
-- ✅ 清理构建目录
-- ✅ 更新版本号
-- ✅ 构建 Archive
-- ✅ 导出 App
-- ✅ 代码签名
-- ✅ 创建 DMG
-- ✅ 上传公证
-- ✅ 装订票据
+**The script will:**
+- Clean build directory
+- Update version
+- Build archive
+- Export app
+- Sign app
+- Create DMG
+- Submit for notarization
+- Staple notarization ticket
 
-**构建时间：** 约 5-15 分钟
+**Build time:** ~5–15 minutes
 
-**输出文件：** `build/Translayr-1.0.0.dmg`
+**Output:** `build/Translayr-1.0.0.dmg`
 
 ---
 
-## 🎯 发布流程
+## 🎯 Release Flow
 
-### 测试 DMG
-在干净的 Mac 上测试下载和安装：
+### Test the DMG
+Test on a clean Mac:
 ```bash
-# 打开构建目录
 open build/
-
-# 测试安装 DMG
 ```
 
-### 创建 GitHub Release
+### Create a GitHub Release
 
-1. 访问仓库的 Releases 页面
-2. 点击 "Create a new release"
+1. Go to Releases
+2. Click "Create a new release"
 3. Tag: `v1.0.0`
-4. 上传 `Translayr-1.0.0.dmg`
-5. 发布！
+4. Upload `Translayr-1.0.0.dmg`
+5. Publish
 
-**用户下载后：**
-- 应用会自动检测更新 ✅
-- 菜单栏显示更新提示 ✅
-- 点击跳转到下载页面 ✅
+**After users download:**
+- Auto update check works ✅
+- Menu bar shows update notice ✅
+- Click opens download page ✅
 
 ---
 
-## 🔧 常用命令
+## 🔧 Common Commands
 
-### 完整构建（推荐）
+### Full build (recommended)
 ```bash
 ./scripts/build-release.sh 1.0.0
 ```
 
-### 仅签名现有 App
+### Sign existing .app
 ```bash
 ./scripts/sign-and-notarize.sh build/export/Translayr.app
 ```
 
-### 仅公证现有 DMG
+### Notarize existing DMG
 ```bash
 ./scripts/sign-and-notarize.sh build/Translayr-1.0.0.dmg
 ```
 
-### 检查代码签名
+### Verify code signature
 ```bash
 codesign -vvv --deep --strict build/export/Translayr.app
 ```
 
-### 验证公证
+### Validate notarization
 ```bash
 xcrun stapler validate build/Translayr-1.0.0.dmg
 ```
 
 ---
 
-## 🚨 首次使用检查清单
+## 🚨 First-Time Checklist
 
-- [ ] 已安装 Xcode Command Line Tools
-- [ ] 已安装 Homebrew
-- [ ] 已安装 create-dmg (`brew install create-dmg`)
-- [ ] 已有 Apple Developer 账号（付费）
-- [ ] 已下载并安装 Developer ID 证书
-- [ ] 已创建 `.env` 文件并填写凭证
-- [ ] 已更新 `UpdateChecker.swift` 中的 GitHub 信息
-- [ ] 脚本已添加执行权限
+- [ ] Xcode Command Line Tools installed
+- [ ] Homebrew installed
+- [ ] create-dmg installed (`brew install create-dmg`)
+- [ ] Apple Developer account active
+- [ ] Developer ID certificate installed
+- [ ] `.env` created with credentials
+- [ ] `UpdateChecker.swift` repo info updated
+- [ ] Scripts have execute permission
 
 ---
 
-## 📚 需要更多帮助？
+## 📚 Need More Help?
 
-**详细指南：** 查看 `BUILD_RELEASE.md`
-- 前置要求详解
-- 分步骤手动构建
-- 完整的故障排除
-- GitHub Actions 自动化
+**Full guide:** `BUILD_RELEASE.md`
+- Prerequisites
+- Manual build steps
+- Troubleshooting
+- GitHub Actions automation
 
-**问题排查：**
+**Diagnostics:**
 ```bash
-# 检查证书
+# Check certificates
 security find-identity -v -p codesigning
 
-# 检查 Xcode
+# Check Xcode
 xcode-select -p
 
-# 测试环境变量
+# Test env vars
 source .env && echo $DEVELOPER_ID_APPLICATION
 ```
 
 ---
 
-## 🎉 第一次发布后
+## 🎉 After the First Release
 
-1. **测试更新功能**
-   - 运行旧版本应用
-   - 检查是否检测到新版本
-   - 验证下载链接正确
+1. **Verify auto-update**
+   - Run old version
+   - Confirm it detects the new release
+   - Check the download link
 
-2. **添加 Homebrew Cask**（可选）
+2. **Add Homebrew Cask (optional)**
    ```ruby
    cask "translayr" do
      version "1.0.0"
@@ -175,35 +176,26 @@ source .env && echo $DEVELOPER_ID_APPLICATION
    end
    ```
 
-3. **设置 GitHub Actions**（可选）
-   - 自动化发布流程
-   - 参考 `BUILD_RELEASE.md` 中的配置
+3. **Set up GitHub Actions (optional)**
+   - Automate releases
+   - See `BUILD_RELEASE.md`
 
 ---
 
-## 💡 提示
+## 💡 Tips
 
-- 🔐 **永远不要提交 `.env` 到 Git** (已在 .gitignore 中)
-- 📝 使用语义化版本号：`major.minor.patch`
-- 🧪 发布前在干净的 Mac 上测试 DMG
-- 📊 考虑集成 TelemetryDeck 或 Mixpanel 统计用户数
-- 🐛 考虑集成 Sentry 收集崩溃报告
-
----
-
-## 下一步
-
-1. ✅ 完成首次配置
-2. ✅ 构建并测试第一个版本
-3. ✅ 发布到 GitHub Releases
-4. 📈 添加统计和错误追踪
-5. 🤖 设置 GitHub Actions 自动化
-
-**准备好了吗？开始构建你的第一个发布版本：**
-```bash
-./scripts/build-release.sh 1.0.0
-```
+- 🔐 Never commit `.env` to Git (already in .gitignore)
+- 📝 Use semantic versioning: `major.minor.patch`
+- 🧪 Test DMG on a clean Mac before release
+- 📊 Consider analytics (TelemetryDeck or Mixpanel)
+- 🐛 Consider crash reporting (Sentry)
 
 ---
 
-**祝发布顺利！** 🚀
+## Next Steps
+
+1. Complete first-time setup
+2. Build and test the first release
+3. Publish to GitHub Releases
+4. Add analytics and crash reporting
+5. Automate with GitHub Actions

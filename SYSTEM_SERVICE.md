@@ -1,154 +1,158 @@
-# Translayr 系统级服务使用指南
+# Translayr System Service Guide
 
-## 🌟 什么是系统服务？
+<p align="center">
+  <a href="https://discord.com/invite/eGzEaP6TzR"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" /></a>
+</p>
 
-Translayr 现在提供 **macOS 系统级服务**，允许你在任何支持文本选择的应用中使用 Translayr 的翻译功能，包括：
+## 🌟 What Are System Services?
 
-- **Notes** (备忘录)
-- **TextEdit** (文本编辑)
-- **Safari** (浏览器)
-- **Mail** (邮件)
+Translayr provides **macOS system services**, so you can translate selected text in any app that supports text selection, including:
+
+- **Notes**
+- **TextEdit**
+- **Safari**
+- **Mail**
 - **Pages**
 - **Xcode**
-- 以及其他任何 macOS 应用！
+- And most other macOS apps
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 1. 启动 Translayr 应用
+### 1. Launch Translayr
 
-首先运行 Translayr 应用一次，这会注册系统服务：
+Run the app once so the service is registered:
 
 ```bash
-# 在 Xcode 中运行，或者
+# Run from Xcode, or
 open /path/to/Translayr.app
 ```
 
-### 2. 刷新系统服务（首次使用）
+### 2. Refresh Services (First Time)
 
-第一次使用时，需要刷新系统服务缓存：
+Refresh the system services cache on first use:
 
 ```bash
-# 方法 1: 重启 SystemUIServer（推荐）
+# Option 1: Restart SystemUIServer (recommended)
 killall SystemUIServer
 
-# 方法 2: 注销并重新登录（更彻底）
-# System Preferences > Lock Screen > Log Out
+# Option 2: Log out and log in again
+# System Settings > Lock Screen > Log Out
 
-# 方法 3: 使用命令行工具
+# Option 3: Command-line flush
 /System/Library/CoreServices/pbs -flush
 ```
 
-### 3. 开始使用
+### 3. Start Using It
 
-现在你可以在任何应用中使用 Translayr 服务了！
+Now Translayr services should appear in any app’s Services menu.
 
-## 📝 使用方法
+## 📝 How to Use
 
-### 方法 1: 右键菜单
+### Method 1: Right-Click Menu
 
-1. 在任何应用中选择中文文本
-2. 右键点击选中的文本
-3. 在菜单中找到 **Services** (服务) > **Translayr**
-4. 选择你需要的服务：
-   - **Translate to English (Translayr)** - 直接翻译替换
-   - **Get Translation Suggestions (Translayr)** - 获取多个翻译建议
+1. Select Chinese text in any app
+2. Right-click the selection
+3. Navigate to **Services** > **Translayr**
+4. Choose a service:
+   - **Translate to English (Translayr)** - translate and replace
+   - **Get Translation Suggestions (Translayr)** - list translation options
 
-### 方法 2: 菜单栏
+### Method 2: Menu Bar
 
-1. 选择文本
-2. 点击应用菜单栏
-3. 找到 **Services** (或应用名称 > Services)
-4. 选择 Translayr 服务
+1. Select text
+2. Open the app’s menu bar
+3. Go to **Services** (or App Name > Services)
+4. Select a Translayr service
 
-### 方法 3: 键盘快捷键（可选）
+### Method 3: Keyboard Shortcut (Optional)
 
-你可以为 Translayr 服务设置快捷键：
+You can assign shortcuts to Translayr services:
 
-1. 打开 **System Settings** (系统设置)
-2. 进入 **Keyboard** (键盘) > **Keyboard Shortcuts** (键盘快捷键)
-3. 选择 **Services** (服务)
-4. 找到 **Translayr** 相关服务
-5. 点击右侧添加快捷键（建议 `⌘⇧T`）
+1. Open **System Settings**
+2. Go to **Keyboard** → **Keyboard Shortcuts**
+3. Select **Services**
+4. Find **Translayr** services
+5. Add a shortcut (suggested: `⌘⇧T`)
 
-## 🎯 实际使用示例
+## 🎯 Examples
 
-### 示例 1: 在 Notes 中翻译
+### Example 1: Translate in Notes
 
-1. 打开 Notes 应用
-2. 输入中文：
+1. Open Notes
+2. Type:
    ```
    人工智能正在改变世界
    ```
-3. 选中文本
-4. 右键 > Services > **Translate to English (Translayr)**
-5. 文本会被替换为：
+3. Select the text
+4. Right-click → Services → **Translate to English (Translayr)**
+5. The text becomes:
    ```
    Artificial intelligence is changing the world
    ```
 
-### 示例 2: 在 TextEdit 中获取建议
+### Example 2: Suggestions in TextEdit
 
-1. 打开 TextEdit
-2. 输入：
+1. Open TextEdit
+2. Type:
    ```
    机器学习
    ```
-3. 选中文本
-4. 右键 > Services > **Get Translation Suggestions (Translayr)**
-5. 文本会被替换为翻译建议列表：
+3. Select the text
+4. Right-click → Services → **Get Translation Suggestions (Translayr)**
+5. You’ll see:
    ```
    machine learning
    ```
 
-### 示例 3: 在浏览器中使用
+### Example 3: Use in Browser
 
-1. 在 Safari 的任何网页上选择中文文本
-2. 右键 > Services > Translayr
-3. 翻译结果会替换选中的文本
+1. Select Chinese text in Safari
+2. Right-click → Services → Translayr
+3. The selection is replaced with translation
 
-## 🔍 验证服务是否已注册
+## 🔍 Verify Service Registration
 
-### 检查方法 1: 系统设置
+### Method 1: System Settings
 
-1. 打开 **System Settings** > **Keyboard** > **Keyboard Shortcuts**
-2. 点击 **Services** (服务)
-3. 滚动查找 **Text** (文本) 分类
-4. 应该能看到 Translayr 的服务
+1. Open **System Settings** → **Keyboard** → **Keyboard Shortcuts**
+2. Select **Services**
+3. Scroll to **Text** category
+4. Translayr services should be listed
 
-### 检查方法 2: 命令行
+### Method 2: Command Line
 
 ```bash
-# 列出所有已注册的服务
+# List registered services
 /System/Library/CoreServices/pbs -dump_pboard
 
-# 或查看系统服务数据库
+# Check services database
 defaults read pbs NSServicesStatus
 ```
 
-### 检查方法 3: 实际测试
+### Method 3: Practical Test
 
-在 TextEdit 中：
-1. 输入任意中文文本并选中
-2. 右键查看菜单
-3. 查看 Services 子菜单
+In TextEdit:
+1. Select any Chinese text
+2. Right-click the selection
+3. Check the Services submenu
 
-## ⚙️ 配置选项
+## ⚙️ Configuration
 
-### 服务名称自定义
+### Customize Service Name
 
-编辑 `Info.plist` 中的 `NSMenuItem` 值：
+Edit `Info.plist` under `NSMenuItem`:
 
 ```xml
 <key>NSMenuItem</key>
 <dict>
     <key>default</key>
-    <string>你的自定义名称</string>
+    <string>Your Custom Name</string>
 </dict>
 ```
 
-### 快捷键自定义
+### Customize Shortcut
 
-在 `Info.plist` 中：
+In `Info.plist`:
 
 ```xml
 <key>NSKeyEquivalent</key>
@@ -158,175 +162,161 @@ defaults read pbs NSServicesStatus
 </dict>
 ```
 
-修饰键说明：
-- 默认包含 `⌘⇧` (Command + Shift)
-- 只需指定字母即可
+Modifier keys:
+- Default includes `⌘⇧` (Command + Shift)
+- You only need to specify the letter
 
-## 🔧 故障排除
+## 🔧 Troubleshooting
 
-### 问题 1: 服务菜单中找不到 Translayr
+### Issue 1: Translayr not in Services menu
 
-**解决方案**:
-
-1. 确保 Translayr 应用至少运行过一次
-2. 刷新服务缓存：
+**Fix:**
+1. Ensure Translayr has launched at least once
+2. Refresh services cache:
    ```bash
    killall SystemUIServer
    ```
-3. 如果还不行，注销并重新登录
+3. If still missing, log out and log back in
 
-### 问题 2: 服务无响应
+### Issue 2: Service does nothing
 
-**可能原因**:
-- Ollama 未运行
-- Translayr 应用未在后台运行
-- 模型未下载
+**Possible causes:**
+- Ollama not running
+- Translayr not running in background
+- Model not downloaded
 
-**解决方案**:
+**Fix:**
 ```bash
-# 确保 Ollama 运行
 ollama serve
-
-# 确保模型已下载
 ollama list
-
-# 如果需要，下载模型
 ollama pull qwen2.5:3b
 ```
 
-### 问题 3: 翻译很慢或超时
+### Issue 3: Slow translation
 
-**解决方案**:
-1. 第一次翻译会慢一些（加载模型）
-2. 使用更小的模型：`gemma2:2b`
-3. 确保 Translayr 应用保持打开状态
+**Fix:**
+1. First translation is slower (model load)
+2. Use a smaller model: `gemma2:2b`
+3. Keep Translayr running
 
-### 问题 4: 某些应用不显示服务
+### Issue 4: Service missing in some apps
 
-**原因**:
-某些应用可能不支持系统服务，或者需要特殊权限。
+**Cause:** Some apps may not support system services.
 
-**解决方案**:
-- 确认应用支持文本选择和右键菜单
-- 某些沙盒应用可能限制服务访问
-- 尝试在其他应用中使用
+**Fix:**
+- Confirm the app supports text selection
+- Some sandboxed apps restrict services
+- Try another app to verify
 
-## 💡 高级用法
+## 💡 Advanced Usage
 
-### 批量翻译
+### Batch Translation
 
-1. 选择多段中文文本（用换行分隔）
-2. 使用 **Get Translation Suggestions** 服务
-3. 每段会被单独翻译
+1. Select multiple Chinese lines (separated by line breaks)
+2. Use **Get Translation Suggestions**
+3. Each line is translated separately
 
-### 与其他工具结合
+### Combine with Automator
 
-可以创建 Automator 工作流，将 Translayr 服务与其他操作结合：
+1. Open **Automator**
+2. Create a **Quick Action**
+3. Add **Run Service**
+4. Select a Translayr service
+5. Add extra actions (e.g., copy to clipboard)
 
-1. 打开 **Automator**
-2. 创建新的 **Quick Action** (快速操作)
-3. 添加 **Run Service** 操作
-4. 选择 Translayr 服务
-5. 添加后续操作（如复制到剪贴板）
-
-### 使用 AppleScript 调用
+### Call via AppleScript
 
 ```applescript
 tell application "System Events"
-    -- 选择文本
     keystroke "a" using command down
-
-    -- 等待
     delay 0.5
-
-    -- 调用服务
-    -- (需要通过 UI 脚本实现)
+    -- Invoke service via UI scripting
 end tell
 ```
 
-## 📊 性能提示
+## 📊 Performance Tips
 
-### 优化响应速度
+### Optimize Responsiveness
 
-1. **保持 Translayr 运行**: 不要关闭应用
-2. **预热模型**: 启动后先翻译一次
-3. **使用轻量模型**: `gemma2:2b` 或 `qwen2.5:3b`
-4. **避免大文本**: 分段处理长文本
+1. **Keep Translayr running**
+2. **Warm up the model** with one translation after launch
+3. **Use lightweight models**: `gemma2:2b` or `qwen2.5:3b`
+4. **Avoid very large selections**
 
-### 预期性能
+### Expected Performance
 
-| 操作 | 首次 | 后续 |
+| Operation | First Run | Subsequent |
 |------|------|------|
-| 服务调用 | 2-3秒 | 1秒 |
-| 短文本翻译 | 3-5秒 | 1-2秒 |
-| 长文本翻译 | 5-10秒 | 3-5秒 |
+| Service call | 2–3s | 1s |
+| Short text translation | 3–5s | 1–2s |
+| Long text translation | 5–10s | 3–5s |
 
-## 🎓 最佳实践
+## 🎓 Best Practices
 
-1. **保持 Translayr 和 Ollama 运行**: 获得最佳性能
-2. **先测试小文本**: 确保服务正常工作
-3. **设置快捷键**: 提高使用效率
-4. **定期更新模型**: 获得更好的翻译质量
-5. **使用建议服务**: 对于重要翻译，先查看建议再决定
+1. Keep Translayr and Ollama running
+2. Test with short text first
+3. Set a keyboard shortcut
+4. Update models regularly
+5. Use suggestions for important translations
 
-## 🔐 隐私和安全
+## 🔐 Privacy and Security
 
-### 数据处理
+### Data Handling
 
-- ✅ 所有翻译在本地完成
-- ✅ 不会发送数据到云端
-- ✅ Ollama 完全离线运行
-- ✅ 符合 macOS 沙盒安全要求
+- ✅ All translations are local
+- ✅ No data sent to the cloud
+- ✅ Ollama runs offline
+- ✅ Complies with macOS sandboxing
 
-### 权限要求
+### Permissions
 
-Translayr 需要以下权限：
-- **网络客户端**: 连接本地 Ollama (127.0.0.1)
-- **读取选中文本**: 从其他应用获取文本
-- **写入文本**: 替换翻译结果
+Translayr uses:
+- **Network client**: local Ollama (127.0.0.1)
+- **Read selection**: access selected text in other apps
+- **Write text**: replace translated output
 
-所有权限都在沙盒内，不会访问系统敏感数据。
+All permissions remain within sandbox constraints.
 
-## 📚 技术细节
+## 📚 Technical Details
 
-### NSServices 实现
+### NSServices Implementation
 
-Translayr 使用 macOS NSServices 框架实现系统级服务：
+Translayr uses macOS NSServices:
 
-- **服务提供者**: `SystemServiceProvider` 类
-- **服务方法**:
+- **Provider**: `SystemServiceProvider`
+- **Methods**:
   - `translateToEnglish(_:userData:error:)`
   - `getTranslationSuggestions(_:userData:error:)`
-- **数据传递**: 通过 NSPasteboard (剪贴板)
-- **异步处理**: 使用 Swift Concurrency (async/await)
+- **Data transport**: NSPasteboard
+- **Concurrency**: Swift async/await
 
-### 工作流程
+### Service Workflow
 
 ```
-用户选择文本
+User selects text
     ↓
-系统调用服务
+System calls service
     ↓
-Translayr 从 Pasteboard 读取文本
+Translayr reads from Pasteboard
     ↓
-Ollama 进行翻译
+Ollama translates
     ↓
-结果写回 Pasteboard
+Result written back to Pasteboard
     ↓
-系统替换原文本
+System replaces original text
 ```
 
-## 🆘 获取帮助
+## 🆘 Help
 
-如果遇到问题：
+If you run into issues:
 
-1. 查看 Translayr 应用的控制台输出（调试信息）
-2. 检查系统日志：Console.app > 搜索 "Translayr"
-3. 参考 README.md 和 USAGE.md
-4. 创建 GitHub Issue
+1. Check Translayr console output (debug logs)
+2. Check system logs in Console.app (search "Translayr")
+3. Read README.md and USAGE.md
+4. Open a GitHub Issue
 
-## 🎉 享受使用！
+## 🎉 Enjoy!
 
-现在你可以在整个 macOS 系统中使用 Translayr 的翻译功能了！
+You can now use Translayr across macOS with system services.
 
-试试在不同的应用中选择中文文本，体验无缝的翻译体验吧！
+Try selecting Chinese text in different apps for seamless translation.

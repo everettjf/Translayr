@@ -1,136 +1,144 @@
 # Translayr Release Build Guide
 
-完整的 macOS 应用签名、公证和发布指南。
+<p align="center">
+  <a href="https://discord.com/invite/eGzEaP6TzR"><img src="https://img.shields.io/badge/Discord-Join-5865F2?logo=discord&logoColor=white" /></a>
+</p>
 
-## 目录
+A complete guide to macOS app signing, notarization, and release.
 
-- [前置要求](#前置要求)
-- [首次配置](#首次配置)
-- [构建发布版本](#构建发布版本)
-- [手动签名和公证](#手动签名和公证)
-- [发布到 GitHub](#发布到-github)
-- [故障排除](#故障排除)
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [First-Time Setup](#first-time-setup)
+- [Build a Release](#build-a-release)
+- [Manual Signing and Notarization](#manual-signing-and-notarization)
+- [Publish to GitHub](#publish-to-github)
+- [Troubleshooting](#troubleshooting)
+- [Versioning](#versioning)
+- [Automated Release (Advanced)](#automated-release-advanced)
+- [Other Distribution Channels](#other-distribution-channels)
+- [Resources](#resources)
+- [Support](#support)
 
 ---
 
-## 前置要求
+## Prerequisites
 
-### 1. Apple Developer 账号
+### 1. Apple Developer Account
 
-- 需要付费的 Apple Developer Program 会员资格（$99/年）
-- 注册地址：https://developer.apple.com/programs/
+- Paid Apple Developer Program membership ($99/year)
+- Sign up: https://developer.apple.com/programs/
 
-### 2. Developer ID 证书
+### 2. Developer ID Certificate
 
-1. 访问 [Apple Developer Certificates](https://developer.apple.com/account/resources/certificates/list)
-2. 点击 "+" 创建新证书
-3. 选择 "Developer ID Application"（用于在 Mac App Store 外分发）
-4. 跟随指示创建 CSR (Certificate Signing Request)
-5. 下载证书并双击安装到 Keychain
+1. Visit [Apple Developer Certificates](https://developer.apple.com/account/resources/certificates/list)
+2. Click "+" to create a new certificate
+3. Choose "Developer ID Application" (for distribution outside the Mac App Store)
+4. Create a CSR (Certificate Signing Request)
+5. Download and install the certificate in Keychain Access
 
-**验证证书：**
+**Verify the certificate:**
 ```bash
 security find-identity -v -p codesigning
 ```
 
-应该看到类似：
+You should see something like:
 ```
 1) ABC1234567 "Developer ID Application: Your Name (TEAM_ID)"
 ```
 
-### 3. 必需的工具
+### 3. Required Tools
 
 #### Xcode Command Line Tools
 ```bash
 xcode-select --install
 ```
 
-#### Homebrew (如果还没安装)
+#### Homebrew (if not installed)
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-#### create-dmg (用于创建 DMG)
+#### create-dmg (for DMG creation)
 ```bash
 brew install create-dmg
 ```
 
 ---
 
-## 首次配置
+## First-Time Setup
 
-### 步骤 1: 配置环境变量
+### Step 1: Configure Environment Variables
 
-1. 复制配置模板：
+1. Copy the template:
 ```bash
 cd /path/to/Translayr
 cp .env.template .env
 ```
 
-2. 编辑 `.env` 文件，填入你的凭证：
+2. Edit `.env` with your credentials:
 ```bash
-nano .env  # 或使用你喜欢的编辑器
+nano .env  # or your preferred editor
 ```
 
-需要填写的信息：
+Required values:
 
 #### a. DEVELOPER_ID_APPLICATION
-打开 Keychain Access → My Certificates，找到 "Developer ID Application" 证书，复制完整名称：
+Open Keychain Access → My Certificates, locate the "Developer ID Application" cert, and copy the full name:
 ```
 DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (ABC1234567)"
 ```
 
 #### b. APPLE_ID
-你的 Apple ID 邮箱：
+Your Apple ID email:
 ```
 APPLE_ID="your-email@example.com"
 ```
 
 #### c. TEAM_ID
-访问 https://developer.apple.com/account → Membership，找到 Team ID（10个字符）：
+Find your Team ID at https://developer.apple.com/account → Membership:
 ```
 TEAM_ID="ABC1234567"
 ```
 
 #### d. APPLE_APP_PASSWORD
-**重要：** 这不是你的 Apple ID 密码！
+**Important:** This is not your Apple ID password.
 
-1. 访问 https://appleid.apple.com/account/manage
-2. 在 "Security" 部分，点击 "App-Specific Passwords"
-3. 点击 "Generate Password"
-4. 输入标签名（例如：Translayr Notarization）
-5. 复制生成的密码（格式：xxxx-xxxx-xxxx-xxxx）
+1. Go to https://appleid.apple.com/account/manage
+2. In "Security", create an App-Specific Password
+3. Use a label like "Translayr Notarization"
+4. Copy the generated password (format: xxxx-xxxx-xxxx-xxxx)
 
 ```
 APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 ```
 
-### 步骤 2: 测试配置
+### Step 2: Verify Setup
 
 ```bash
-# 加载环境变量
+# Load env vars
 source .env
 
-# 测试证书
+# Verify signing identity
 security find-identity -v -p codesigning | grep "$TEAM_ID"
 
-# 测试公证凭证（可选，不会提交任何内容）
+# Verify notarization credentials (no upload)
 xcrun notarytool store-credentials "test-profile" \
   --apple-id "$APPLE_ID" \
   --team-id "$TEAM_ID" \
   --password "$APPLE_APP_PASSWORD"
 ```
 
-### 步骤 3: 更新 UpdateChecker.swift
+### Step 3: Update UpdateChecker.swift
 
-编辑 `Translayr/Services/UpdateChecker.swift`，修改 GitHub 仓库信息：
+Edit `Translayr/Services/UpdateChecker.swift` with your repo info:
 
 ```swift
 private let githubOwner = "your-github-username"
 private let githubRepo = "Translayr"
 ```
 
-### 步骤 4: 添加执行权限
+### Step 4: Add Execute Permissions
 
 ```bash
 chmod +x scripts/build-release.sh
@@ -139,38 +147,38 @@ chmod +x scripts/sign-and-notarize.sh
 
 ---
 
-## 构建发布版本
+## Build a Release
 
-### 自动化构建（推荐）
+### Automated Build (Recommended)
 
-一键完成所有步骤（构建、签名、公证、打包）：
+One command for build + signing + notarization + packaging:
 
 ```bash
 ./scripts/build-release.sh 1.0.0
 ```
 
-脚本会自动：
-1. ✅ 清理构建目录
-2. ✅ 更新 Info.plist 版本号
-3. ✅ 构建 Xcode Archive
-4. ✅ 导出 .app
-5. ✅ 代码签名
-6. ✅ 创建 DMG
-7. ✅ 上传到 Apple 公证
-8. ✅ 装订公证票据
+The script will:
+1. Clean build directory
+2. Update Info.plist version
+3. Build Xcode archive
+4. Export .app
+5. Code sign
+6. Create DMG
+7. Upload for notarization
+8. Staple notarization ticket
 
-**预计耗时：** 5-15 分钟（公证需要等待 Apple 处理）
+**Expected time:** 5–15 minutes (notarization depends on Apple)
 
-构建完成后，DMG 文件位于：
+Output DMG:
 ```
 build/Translayr-1.0.0.dmg
 ```
 
-### 手动构建步骤
+### Manual Build Steps
 
-如果需要更多控制，可以手动执行各个步骤：
+For fine-grained control, run steps manually:
 
-#### 1. 构建 Archive
+#### 1. Archive
 ```bash
 xcodebuild archive \
   -scheme Translayr \
@@ -180,7 +188,7 @@ xcodebuild archive \
   -allowProvisioningUpdates
 ```
 
-#### 2. 导出 App
+#### 2. Export App
 ```bash
 xcodebuild -exportArchive \
   -archivePath build/Translayr.xcarchive \
@@ -188,7 +196,7 @@ xcodebuild -exportArchive \
   -exportOptionsPlist ExportOptions.plist
 ```
 
-#### 3. 签名
+#### 3. Sign
 ```bash
 codesign --deep --force --verify --verbose \
   --sign "Developer ID Application: Your Name (TEAM_ID)" \
@@ -197,7 +205,7 @@ codesign --deep --force --verify --verbose \
   build/export/Translayr.app
 ```
 
-#### 4. 创建 DMG
+#### 4. Create DMG
 ```bash
 create-dmg \
   --volname "Translayr" \
@@ -209,7 +217,7 @@ create-dmg \
   build/export/Translayr.app
 ```
 
-#### 5. 公证
+#### 5. Notarize
 ```bash
 xcrun notarytool submit build/Translayr-1.0.0.dmg \
   --apple-id "your-email@example.com" \
@@ -218,48 +226,48 @@ xcrun notarytool submit build/Translayr-1.0.0.dmg \
   --wait
 ```
 
-#### 6. 装订票据
+#### 6. Staple
 ```bash
 xcrun stapler staple build/Translayr-1.0.0.dmg
 ```
 
 ---
 
-## 手动签名和公证
+## Manual Signing and Notarization
 
-如果你已经有了 .app 或 .dmg 文件，可以使用独立的签名脚本：
+If you already have a .app or .dmg, use the standalone script:
 
-### 对 .app 签名并创建 DMG
+### Sign .app and create DMG
 ```bash
 ./scripts/sign-and-notarize.sh build/export/Translayr.app
 ```
 
-### 对现有 DMG 公证
+### Notarize existing DMG
 ```bash
 ./scripts/sign-and-notarize.sh build/Translayr-1.0.0.dmg
 ```
 
 ---
 
-## 发布到 GitHub
+## Publish to GitHub
 
-### 步骤 1: 测试 DMG
+### Step 1: Test the DMG
 
-在**另一台干净的 Mac**（或新用户账户）上测试：
+Test on a **clean Mac** or a fresh user account:
 
-1. 下载 DMG
-2. 打开 DMG
-3. 拖拽 Translayr.app 到 Applications
-4. 从 Applications 运行应用
-5. 验证不会出现 "已损坏" 或 "来自身份不明开发者" 的警告
+1. Download DMG
+2. Open DMG
+3. Drag Translayr.app into Applications
+4. Launch from Applications
+5. Confirm no "damaged" or "unknown developer" warnings
 
-### 步骤 2: 创建 GitHub Release
+### Step 2: Create a GitHub Release
 
-#### 方法 1: 使用 GitHub 网页界面
+#### Option 1: GitHub Web UI
 
-1. 访问你的仓库页面
-2. 点击 "Releases" → "Create a new release"
-3. 填写 Release 信息：
+1. Go to your repo
+2. Click "Releases" → "Create a new release"
+3. Fill release info:
 
 **Tag version:** `v1.0.0`
 **Release title:** `Translayr 1.0.0`
@@ -293,64 +301,64 @@ xcrun stapler staple build/Translayr-1.0.0.dmg
 **Full Changelog**: https://github.com/username/Translayr/compare/v0.9.0...v1.0.0
 ```
 
-4. 上传 `Translayr-1.0.0.dmg`
-5. 点击 "Publish release"
+4. Upload `Translayr-1.0.0.dmg`
+5. Click "Publish release"
 
-#### 方法 2: 使用 GitHub CLI
+#### Option 2: GitHub CLI
 
 ```bash
-# 安装 gh CLI
+# Install gh CLI
 brew install gh
 
-# 登录
+# Login
 gh auth login
 
-# 创建 release
+# Create release
 gh release create v1.0.0 \
   build/Translayr-1.0.0.dmg \
   --title "Translayr 1.0.0" \
   --notes "See full release notes at https://github.com/username/Translayr/releases/tag/v1.0.0"
 ```
 
-### 步骤 3: 验证自动更新
+### Step 3: Verify Auto-Update
 
-1. 运行你的应用（旧版本）
-2. 应该会自动检测到新版本
-3. 点击更新通知
-4. 确认能正确打开 GitHub Releases 页面
+1. Run the old app version
+2. Confirm update is detected
+3. Click the update notification
+4. Verify it opens the GitHub Releases page
 
 ---
 
-## 故障排除
+## Troubleshooting
 
-### 问题：签名失败 "no identity found"
+### Issue: Signing failed "no identity found"
 
-**解决方案：**
+**Fix:**
 ```bash
-# 检查可用的签名身份
+# List available identities
 security find-identity -v -p codesigning
 
-# 如果没有找到，重新安装证书
-# 1. 从 developer.apple.com 下载证书
-# 2. 双击 .cer 文件安装到 Keychain
+# If missing, reinstall certificate
+# 1. Download from developer.apple.com
+# 2. Double-click .cer to install in Keychain
 ```
 
-### 问题：公证失败 "Invalid credentials"
+### Issue: Notarization failed "Invalid credentials"
 
-**检查：**
-1. Apple ID 是否正确
-2. 是否使用了 App-specific password（不是普通密码）
-3. Team ID 是否正确
+**Check:**
+1. Apple ID is correct
+2. App-specific password is used (not your regular password)
+3. Team ID is correct
 
-**重新生成 App-specific password：**
+**Recreate app-specific password:**
 1. https://appleid.apple.com/account/manage
 2. Security → App-Specific Passwords
-3. 生成新密码并更新 .env
+3. Generate a new password and update `.env`
 
-### 问题：公证失败 "The binary is not signed"
+### Issue: Notarization failed "The binary is not signed"
 
-**解决方案：**
-确保在公证前进行了签名，并且使用了 `--options runtime` 标志：
+**Fix:**
+Ensure you signed before notarizing and used `--options runtime`:
 ```bash
 codesign --deep --force --verify --verbose \
   --sign "Developer ID Application: Your Name (TEAM_ID)" \
@@ -359,64 +367,63 @@ codesign --deep --force --verify --verbose \
   Translayr.app
 ```
 
-### 问题：用户打开 DMG 后显示"已损坏"
+### Issue: DMG shows "damaged" after download
 
-**原因：** 应用未公证或公证票据未装订
+**Cause:** Not notarized or ticket not stapled
 
-**解决方案：**
-1. 确保公证成功
-2. 运行 `xcrun stapler staple Translayr.dmg`
-3. 验证：`xcrun stapler validate Translayr.dmg`
+**Fix:**
+1. Ensure notarization succeeded
+2. Run `xcrun stapler staple Translayr.dmg`
+3. Verify: `xcrun stapler validate Translayr.dmg`
 
-### 问题：构建时找不到 Xcode
+### Issue: Xcode not found during build
 
-**解决方案：**
+**Fix:**
 ```bash
-# 设置 Xcode 路径
 sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
 
-# 验证
+# Verify
 xcode-select -p
 ```
 
-### 问题：create-dmg 命令未找到
+### Issue: create-dmg not found
 
-**解决方案：**
+**Fix:**
 ```bash
 brew install create-dmg
 ```
 
-### 问题：UpdateChecker 无法检测到新版本
+### Issue: UpdateChecker doesn’t detect new releases
 
-**检查：**
-1. `UpdateChecker.swift` 中的 GitHub 用户名和仓库名是否正确
-2. GitHub Release 的 tag 格式是否为 `v1.0.0`（带 v 前缀）
-3. Release 是否为正式版本（不是 prerelease）
-4. 网络连接是否正常
-
----
-
-## 版本号管理
-
-遵循 [语义化版本](https://semver.org/lang/zh-CN/) 规范：
-
-- **主版本号 (Major)**: 不兼容的 API 变更
-- **次版本号 (Minor)**: 向下兼容的功能新增
-- **修订号 (Patch)**: 向下兼容的问题修复
-
-示例：
-- `1.0.0` - 首个正式版本
-- `1.1.0` - 添加新功能
-- `1.1.1` - 修复 bug
-- `2.0.0` - 重大更新
+**Check:**
+1. GitHub owner/repo values in `UpdateChecker.swift`
+2. Tag format is `v1.0.0`
+3. Release is not marked as prerelease
+4. Network connectivity
 
 ---
 
-## 自动化发布流程（高级）
+## Versioning
 
-### 使用 GitHub Actions
+Follow [Semantic Versioning](https://semver.org/):
 
-创建 `.github/workflows/release.yml`：
+- **Major**: breaking changes
+- **Minor**: backward-compatible features
+- **Patch**: backward-compatible bug fixes
+
+Examples:
+- `1.0.0` - first stable release
+- `1.1.0` - new features
+- `1.1.1` - bug fixes
+- `2.0.0` - breaking changes
+
+---
+
+## Automated Release (Advanced)
+
+### GitHub Actions
+
+Create `.github/workflows/release.yml`:
 
 ```yaml
 name: Release
@@ -455,9 +462,9 @@ jobs:
           files: build/*.dmg
 ```
 
-**配置 GitHub Secrets：**
-1. 进入仓库 Settings → Secrets → Actions
-2. 添加以下 secrets：
+**Configure GitHub Secrets:**
+1. Repo Settings → Secrets → Actions
+2. Add:
    - `DEVELOPER_ID_APPLICATION`
    - `APPLE_ID`
    - `TEAM_ID`
@@ -465,40 +472,40 @@ jobs:
 
 ---
 
-## 其他发布渠道
+## Other Distribution Channels
 
 ### Homebrew Cask
 
-提交到 Homebrew 让用户可以通过 `brew install --cask translayr` 安装：
+Submit to Homebrew so users can install via `brew install --cask translayr`:
 
 1. Fork https://github.com/Homebrew/homebrew-cask
-2. 创建 Cask 文件：`Casks/translayr.rb`
-3. 提交 Pull Request
+2. Create `Casks/translayr.rb`
+3. Open a Pull Request
 
 ### Setapp
 
-如果想通过订阅平台分发：
-- 申请加入：https://setapp.com/developers
-- 好处：处理付费、更新、统计
+If you want subscription distribution:
+- Apply: https://setapp.com/developers
+- Benefits: billing, updates, analytics
 
 ---
 
-## 相关资源
+## Resources
 
-- [Apple 公证指南](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
-- [代码签名指南](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/)
-- [create-dmg 文档](https://github.com/create-dmg/create-dmg)
-- [语义化版本](https://semver.org/lang/zh-CN/)
-
----
-
-## 支持
-
-如果遇到问题：
-1. 查看上面的"故障排除"部分
-2. 检查脚本输出的详细错误信息
-3. 在 GitHub 提交 Issue
+- [Apple Notarization Guide](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
+- [Code Signing Guide](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/)
+- [create-dmg Docs](https://github.com/create-dmg/create-dmg)
+- [Semantic Versioning](https://semver.org/)
 
 ---
 
-**最后更新：** 2025-01-12
+## Support
+
+If you run into issues:
+1. Review the troubleshooting section
+2. Check detailed script output
+3. Open a GitHub Issue
+
+---
+
+**Last updated:** 2025-01-12
